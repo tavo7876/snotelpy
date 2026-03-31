@@ -1,0 +1,23 @@
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Large data -- keep out of Git
+*.nc
+*.grib
+*.grib2
+*.hdf5
+*.h5
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS & editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Environments
+venv/
+*.egg-info/
