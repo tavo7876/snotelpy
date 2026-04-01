@@ -53,7 +53,7 @@ def _parse_dates(values, duration):
             'day': 1 
             
                         })
-        return dates
+        return pd.DatetimeIndex(dates)
     elif duration.strip().upper() == "WATER_YEAR":
         dates = pd.to_datetime({
             'year': df['year'],
@@ -128,7 +128,7 @@ def fetch_data(stations="", elements="", duration="DAILY", start_date = "1991-01
     station_list = [station['stationTriplet'] for station in data]
     
     #call phrase dates
-    
+
     values = data[0]['data'][0]['values']
     dates = _parse_dates(values, duration) #builds us a date time index based on the duration choosen 
    
@@ -174,7 +174,15 @@ def fetch_data(stations="", elements="", duration="DAILY", start_date = "1991-01
                    
     
         data_vars[element_code] = (["time", "station"], grid) #build the dictionary array coresponding to the data 
+    
+    var_dates = _parse_dates(var['values'], duration)
+    
+    for j, d in enumerate(var_dates):
+        print(f"looking for: {d}, type: {type(d)}")
+        print(f"in dates: {d in dates}")
+        break
         
+    
     #build the data set
     ds = xr.Dataset(
         data_vars = data_vars,
@@ -190,7 +198,7 @@ def fetch_data(stations="", elements="", duration="DAILY", start_date = "1991-01
     
     return ds
             
-    
+
     
     
         
@@ -216,7 +224,7 @@ def fetch_data(stations="", elements="", duration="DAILY", start_date = "1991-01
 if __name__ == "__main__": #main header gaurder  
     
     station1 = "602:CO:sntl, 617:AZ:SNTL"
-    elements = "PREC"
+    elements = "PREC, SNWD"
     ds = fetch_data(station1, elements, "CALENDAR_YEAR")
     
     ds['PREC'].isel(station=0).plot()
@@ -227,4 +235,3 @@ if __name__ == "__main__": #main header gaurder
     
 
 
- 
