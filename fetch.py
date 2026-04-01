@@ -2,11 +2,12 @@ import os
 import sys
 import math
 
-import pandas as pd
 import requests
-import xarray as xr
+import pandas as pd
 import json
 import yaml
+import matplotlib.pyplot as plt
+import xarray as xr
 import numpy as np
 import Config 
 
@@ -63,10 +64,7 @@ def _parse_dates(values, duration):
         return pd.DatetimeIndex(dates)
   
 
-
-"1991-10-01" "2100-01-01"
-
-def fetch_data(stations="", elements="", duration="DAILY", start_date = "1991-01-01", end_date = ""): 
+def fetch_data(stations="", elements="", duration="DAILY", start_date = "1991-01-01", end_date = "2100-01-01"): 
     '''
     # Enter a station
     A comma separated list of station triplets (ie. stationId:stateCode:networkCode). Any portion of the triplet can contain the '*' wildcard character. For example, if you want all SNOTEL stations in OR or WA, you can request '*:OR:SNTL, *:WA:SNTL'.
@@ -121,11 +119,16 @@ def fetch_data(stations="", elements="", duration="DAILY", start_date = "1991-01
     
     # returns a list 
     data = response.json()
+    if len(data) == 0:
+        raise ValueError(f"API request was Successfull but contained no data: {data}")
+        return
+    
     
     #build a stationlist
     station_list = [station['stationTriplet'] for station in data]
     
     #call phrase dates
+    
     values = data[0]['data'][0]['values']
     dates = _parse_dates(values, duration) #builds us a date time index based on the duration choosen 
    
@@ -139,6 +142,7 @@ def fetch_data(stations="", elements="", duration="DAILY", start_date = "1991-01
 
 
     variables  = [var['stationElement']['elementCode'] for var in data[0]['data']]
+ 
     n_times    = len(dates)
     n_stations = len(station_list)
     
@@ -147,22 +151,30 @@ def fetch_data(stations="", elements="", duration="DAILY", start_date = "1991-01
     
     
     
-    
-    
-    for element_code in variables:
-        grid = np.zeros((n_times, n_stations))  # full grid upfront
-    
-        for i, station in enumerate(data):
-            for var in station['data']:
+    #loop
+    #structure dictionary -> list -> dictionary -> list -> dictionaries.
+    for element_code in variables: #loops through elementcodes ex: [PREC, WTEQ]
+        # grid = np.zeros((n_times, n_stations))  # full grid upfront
+        grid = np.full((n_times, n_stations), np.nan) # builds grid n_times, n_stations 
+        # print(grid.shape) #402, 1 full of nan
+        for i, station in enumerate(data): #access the data 
+            for var in station['data']: #acesss 'data' witch is a List--> dictionary(stationelements) --> list('values')(all values are store)-->dict(each time)(each value)
                 if var['stationElement']['elementCode'] == element_code:
-                    
-                    
-                    
-                    df = pd.DataFrame(var['values'])      
-                    grid[:, i] = df['value'].values 
+                    df = pd.DataFrame(var['values'])   #creates a dataframe(table like, contains your time(ex for month __> month | year | value))
     
-    data_vars[element_code] = (["time", "station"], grid)
-
+                      # build dates for THIS variable's values
+                    var_dates = _parse_dates(var['values'], duration) #builds your date for the varibles values(needs to be insde the loop for each sation seperate dates)
+                    
+                # match each value to its position in master dates
+                for j, d in enumerate(var_dates): # if d is in dates 
+                    if d in dates: # if d in the varibles(prec, wteq, ect...)dates matches with the dates values in the stations first element, then:
+                        row_idx = dates.get_loc(d) #get the location(index of that date in dates 
+                        grid[row_idx, i] = df['value'].values[j]   #match idex of grid w/ [row_idx = value for that date, station(1,2,3 ect)]
+                    #possibilty to break if prec and wteq or other elements have differnt readings(but im not sure)
+                   
+    
+        data_vars[element_code] = (["time", "station"], grid) #build the dictionary array coresponding to the data 
+        
     #build the data set
     ds = xr.Dataset(
         data_vars = data_vars,
@@ -172,7 +184,7 @@ def fetch_data(stations="", elements="", duration="DAILY", start_date = "1991-01
         }
     )
 
-    for var_name in ds.data_vars:
+    for var_name in ds.data_vars: #stores metadate from ELEMENTS.yaml
         if var_name in var_metadata:
             ds[var_name].attrs = var_metadata[var_name]
     
@@ -202,12 +214,15 @@ def fetch_data(stations="", elements="", duration="DAILY", start_date = "1991-01
 
 
 if __name__ == "__main__": #main header gaurder  
-    station1 = "602:CO:sntl "
-    elements = "PREC, wteq "
-    response = fetch_data(station1, elements, "Monthly")
-    print(response)
     
+    station1 = "602:CO:sntl, 617:AZ:SNTL"
+    elements = "PREC"
+    ds = fetch_data(station1, elements, "CALENDAR_YEAR")
     
+    ds['PREC'].isel(station=0).plot()
+    
+    print(ds)
+    plt.show()
     
     
 
