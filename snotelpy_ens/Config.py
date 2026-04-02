@@ -1,3 +1,3 @@
-ELEMENTS_YAML_PATH = "ELEMENTS.yaml"
+ELEMENTS_YAML_PATH = "snotelpy\ELEMENTS.yaml"
 
 
