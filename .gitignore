@@ -1,6 +1,11 @@
 # Python bytecode
 __pycache__/
-*.pyc
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+.pypirc
 
 # Large data -- keep out of Git
 *.nc
@@ -18,6 +23,9 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Environments
-venv/
-*.egg-info/
+# Outputs
+*.png
+*.pdf
+
+#other
+snotelpy\Tests
