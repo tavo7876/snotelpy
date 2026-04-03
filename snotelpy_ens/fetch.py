@@ -201,10 +201,37 @@ def fetch_data(stations="", elements="", duration="DAILY", start_date = "1991-01
             
 
     
+def station_info(station_triplet="",): 
+    '''
     
-        
-        
-        
+    # This function returns a dict of a stations metadata
+    
+    Enter a station triplet a comma separated list of station triplets (ie. stationId:stateCode:networkCode) as a string.
+    
+    Will return a nested list inside of a dictonary. 
+    
+    
+    '''
+    
+    URL = 'https://wcc.sc.egov.usda.gov/awdbRestApi/services/v1/stations'
+    
+    params = {
+    "stationTriplets": f"{station_triplet.strip().upper()}",
+    }
+    request = requests.get(URL,params=params )
+    
+    return request.json()
+
+
+def get_stations(station_triplets):
+    URL = 'https://wcc.sc.egov.usda.gov/awdbRestApi/services/v1/stations'
+    
+    params = {
+    "stationTriplets": f"{station_triplets.strip().upper()}",
+    }
+    request = requests.get(URL,params=params )
+    
+    return request.json()  
         
         
         
@@ -225,14 +252,18 @@ def fetch_data(stations="", elements="", duration="DAILY", start_date = "1991-01
 if __name__ == "__main__": #main header gaurder  
     
     station1 = "602:CO:sntl, 617:AZ:SNTL"
-    elements = "PREC, SNWD"
-    ds = fetch_data(station1, elements, "CALENDAR_YEAR")
+    elements = "PREC"
+    ds = fetch_data(station1, elements, "MONTHLY")
     
     ds['PREC'].isel(station=0).plot()
     
     print(ds)
     plt.show()
     
+    # data = station_info("602:CO:SNTL")
+    # print(data[0]['latitude'])
+    # print(data[0]['elevation'])
+  
     
 
 
