@@ -65,7 +65,7 @@ def _parse_dates(values, duration):
         return pd.DatetimeIndex(dates)
   
 
-def fetch_data(stations="", elements="", duration="DAILY", start_date = "1991-01-01", end_date = "2100-01-01"): 
+def fetch_data(stations=[], elements="", duration="DAILY", start_date = "1991-01-01", end_date = "2100-01-01"): 
     '''
     # Enter a station
     A comma separated list of station triplets (ie. stationId:stateCode:networkCode). Any portion of the triplet can contain the '*' wildcard character. For example, if you want all SNOTEL stations in OR or WA, you can request '*:OR:SNTL, *:WA:SNTL'.
@@ -101,9 +101,11 @@ def fetch_data(stations="", elements="", duration="DAILY", start_date = "1991-01
     
     url = "https://wcc.sc.egov.usda.gov/awdbRestApi/services/v1/data"# base URL
     
+    
+    station_string = ",".join(stations)
     #all paramters striped of whitespace and all uppercased 
     params = {
-        "stationTriplets": f"{stations.strip().upper()}",
+        "stationTriplets": f"{station_string.strip().upper()}",
         "elements": f"{elements.strip().upper()}",
         "duration": f"{duration.strip().upper()}",
         "beginDate": f"{start_date.strip()}",
@@ -223,15 +225,29 @@ def station_info(station_triplet="",):
     return request.json()
 
 
-def get_stations(station_triplets):
+def get_stations(station_triplets ="::SNTL", elements = "", hucs = "", county_name ="", station_name = "",returnStationElements = "false"):
+    '''
+    
+    '''
+    
     URL = 'https://wcc.sc.egov.usda.gov/awdbRestApi/services/v1/stations'
     
     params = {
     "stationTriplets": f"{station_triplets.strip().upper()}",
+    "elements": f"{elements.strip().upper()}",
+    "hucs": f"{hucs.strip()}",
+    "countyNames": f"{county_name.strip().upper()}",
+    "stationNames": f"{station_name.strip().upper()}",
+    # "returnStationElements": "false"
     }
+    
     request = requests.get(URL,params=params )
     
-    return request.json()  
+    data = request.json()  
+    df = pd.DataFrame(data)
+    return df
+    
+    
         
         
         
@@ -253,17 +269,35 @@ if __name__ == "__main__": #main header gaurder
     
     station1 = "602:CO:sntl, 617:AZ:SNTL"
     elements = "PREC"
-    ds = fetch_data(station1, elements, "MONTHLY")
     
-    ds['PREC'].isel(station=0).plot()
+    # ds = fetch_data(station1,elements  ,duration="MONTHLY")
     
-    print(ds)
-    plt.show()
+    # print(ds)
+    # ds['PREC'].isel(station=0).plot()
     
-    # data = station_info("602:CO:SNTL")
+    # print(ds)
+    # plt.show()
+    
+    # data = station_info(":CO:SNTL")
+  
     # print(data[0]['latitude'])
     # print(data[0]['elevation'])
-  
     
+    df = get_stations(county_name = "Boulder")
+    print(df)
 
-
+    print(df[df['elevation'] > 9000])
+    station_boulder_highest = df[df['elevation'] > 9000]['stationTriplet']
+    list1 = station_boulder_highest.to_list()
+    
+    
+    ds = fetch_data(list1, "PREC", "CALENDAR_YEAR")
+    
+    ds['PREC'].isel(station = 0).plot(label = 'station 0')
+    ds['PREC'].isel(station = 1).plot(label = 'station 1')
+    ds['PREC'].isel(station = 2).plot(label = 'station 2')
+    ds['PREC'].isel(station = 3).plot(label = 'station 3')
+    ds['PREC'].isel(station = 4).plot(label = 'station 4')
+    plt.legend()
+    plt.show()
+   
