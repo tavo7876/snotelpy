@@ -26,3 +26,7 @@ dev = ["build", "twine"]
 
 [project.scripts]
 run-snotelpy = "snotelpy.snotel_ensemble:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["snotelpy"]
