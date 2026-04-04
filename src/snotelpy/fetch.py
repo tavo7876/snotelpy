@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import xarray as xr
 import numpy as np
 
-import Config 
+from snotelpy import Config 
 
 # from my_project.utils import helper_function
 # from my_project.constants import API_KEY
