@@ -9,6 +9,8 @@ import yaml
 import matplotlib.pyplot as plt
 import xarray as xr
 import numpy as np
+import geopandas as gpd
+from shapely.geometry import Point
 
 from snotelpy import Config 
 
@@ -21,8 +23,20 @@ from snotelpy import Config
 def _parse_dates(values, duration):
     
     """
-    Parse dates from AWDB API values list based on duration type.
-    Returns a pandas DatetimeIndex.
+    Private function to return datetime's based on duration and time values from api
+
+    Parameters
+    ----------
+    values : list
+        description
+    duration : str
+        duration from fetch, stripped and upper
+
+    Returns
+    -------
+    pd.Datetimeindex
+        returns a datetime index from start to end date for duration
+    
     """
     
     df = pd.DataFrame(values)
@@ -67,35 +81,45 @@ def _parse_dates(values, duration):
 
 def fetch_data(stations=[], elements="", duration="DAILY", start_date = "1991-01-01", end_date = "2100-01-01"): 
     '''
-    # Enter a station
-    A comma separated list of station triplets (ie. stationId:stateCode:networkCode). Any portion of the triplet can contain the '*' wildcard character. For example, if you want all SNOTEL stations in OR or WA, you can request '*:OR:SNTL, *:WA:SNTL'.
-    
-    # Enter Elements:
-    A comma separated list of elements in the format elementCode:heightDepth:ordinal. Any part of the element string can contain the '*' wildcard character. The heightDepth and ordinal are optional. If heightDepth is not specified then it is assumed to be null. If the ordinal is not specified, then it is assumed to be 1. The heightDepth is in inches. Examples: PREC, WTEQ, SMS:*, PREC::2
-    
-    
-    
-    # Duration =
-    DAILY \n
-    HOURLY \n
-    SEMIMONTHLY \n
-    MONTHLY \n
-    CALENDAR_YEAR \n
-    WATER YEAR \n
-                
-                
-    ## Datetime = 'YYYY-MM-DD'
-    The begin date of the data to retrieve. Expects either a date or a relative date. The date must be in the 'yyyy-MM-dd HH:mm' or 'MM/dd/yyyy HH:mm' format (time defaults to midnight when not specified). Relative dates can be 0 (the current date) or -n where the unit of n corresponds to the duration.
-   
+    Fetch data from the USDA AWDB REST API for one or more SNOTEL stations.
 
-    \nThe end date of the data to retrieve. Expects either a date or a relative date. The date must be in the 'yyyy-MM-dd HH:mm' or 'MM/dd/yyyy HH:mm' format (time defaults to midnight when not specified). Relative dates can be 0 (the current date) or -n where the unit of n corresponds to the duration.
-    \nDefaluts are from 1991-10-01 to 2100-01-01
-    
-    # Output
-    output --> what type of data to convert to, 
-    pd = pandas dataframe
-    xr = xarray dataset
-    
+    Parameters
+    ----------
+    stations : list
+        A list of station triplets in the format 'stationId:stateCode:networkCode'.
+        Any portion of the triplet can contain the '*' wildcard character.
+        Examples: ['602:CO:SNTL'], ['*:OR:SNTL', '*:WA:SNTL']
+    elements : str
+        A comma separated list of elements in the format elementCode:heightDepth:ordinal.
+        Any part of the element string can contain the '*' wildcard character.
+        HeightDepth and ordinal are optional, defaulting to null and 1 respectively.
+        Examples: 'PREC', 'WTEQ', 'SMS:*', 'PREC::2'
+    duration : str, optional
+        The time duration of the data to retrieve, by default 'DAILY'.
+        Options:
+            - 'DAILY'
+            - 'HOURLY'
+            - 'SEMIMONTHLY'
+            - 'MONTHLY'
+            - 'CALENDAR_YEAR'
+            - 'WATER_YEAR'
+    start_date : str, optional
+        Begin date in 'YYYY-MM-DD' format, by default '1991-01-01'.
+        Relative dates accepted: 0 (current date) or -n where n corresponds to duration.
+    end_date : str, optional
+        End date in 'YYYY-MM-DD' format, by default '2100-01-01'.
+        Relative dates accepted: 0 (current date) or -n where n corresponds to duration.
+
+    Returns
+    -------
+    xr.Dataset
+        An xarray Dataset with dimensions (time, station) containing the requested
+        elements as data variables, with metadata attributes loaded from ELEMENTS.yaml.
+
+    Raises
+    ------
+    ValueError
+        If the API request fails or returns no data.
     '''
     
     
@@ -180,10 +204,7 @@ def fetch_data(stations=[], elements="", duration="DAILY", start_date = "1991-01
     
     var_dates = _parse_dates(var['values'], duration)
     
-    for j, d in enumerate(var_dates):
-        print(f"looking for: {d}, type: {type(d)}")
-        print(f"in dates: {d in dates}")
-        break
+    
         
     
     #build the data set
@@ -205,12 +226,21 @@ def fetch_data(stations=[], elements="", duration="DAILY", start_date = "1991-01
     
 def station_info(station_triplet="",): 
     '''
+    Get station metadata from USDA AWDB REST API for one SNOTEL stations. 
     
-    # This function returns a dict of a stations metadata
+    Parameters
+    ----------
+    station_triplet : str
+        A string of a station triplet in the format 'stationId:stateCode:networkCode'
+        Any portion of the triplet can contain the '*' wildcard character.
+        Examples: '602:CO:SNTL'
+
+
+    Returns
+    -------
+    list
+        A nested list that has info for request station. 
     
-    Enter a station triplet a comma separated list of station triplets (ie. stationId:stateCode:networkCode) as a string.
-    
-    Will return a nested list inside of a dictonary. 
     
     
     '''
@@ -225,10 +255,46 @@ def station_info(station_triplet="",):
     return request.json()
 
 
-def get_stations(station_triplets ="::SNTL", elements = "", hucs = "", county_name ="", station_name = "",returnStationElements = "false"):
-    '''
-    
-    '''
+def get_stations(station_triplets ="::SNTL", elements = "", hucs = "", county_name ="", station_name = "",returnStationElements = "false",returnType = 'pd'):
+    """
+    Retrieve SNOTEL station metadata from the USDA AWDB REST API.
+
+    Parameters
+    ----------
+    station_triplets : str, optional
+        A comma separated list of station triplets in the format 
+        'stationId:stateCode:networkCode', by default '::SNTL' (all SNOTEL stations).
+        Any portion of the triplet can contain the '*' wildcard character.
+        Examples: '602:CO:SNTL', '*:CO:SNTL'
+    elements : str, optional
+        Filter stations by element code, by default '' (no filter).
+        Examples: 'PREC', 'WTEQ'
+    hucs : str, optional
+        Filter stations by HUC watershed code, by default '' (no filter).
+    county_name : str, optional
+        Filter stations by county name, by default '' (no filter).
+        Example: 'Boulder'
+    station_name : str, optional
+        Filter stations by station name, by default '' (no filter).
+    returnStationElements : str, optional
+        Whether to return station elements, by default 'false'.
+    returnType : str, optional
+        The type of object to return, by default 'pd'.
+        Options:
+            - 'pd' : pandas DataFrame
+            - 'gpd' : geopandas GeoDataFrame with point geometry (EPSG:4326)
+
+    Returns
+    -------
+    pd.DataFrame or gpd.GeoDataFrame
+        Station metadata including name, triplet, elevation, latitude, and longitude.
+        Returns a GeoDataFrame with point geometry if returnType='gpd'.
+
+    Raises
+    ------
+    ValueError
+        If the API request fails.
+    """
     
     URL = 'https://wcc.sc.egov.usda.gov/awdbRestApi/services/v1/stations'
     
@@ -238,14 +304,24 @@ def get_stations(station_triplets ="::SNTL", elements = "", hucs = "", county_na
     "hucs": f"{hucs.strip()}",
     "countyNames": f"{county_name.strip().upper()}",
     "stationNames": f"{station_name.strip().upper()}",
-    # "returnStationElements": "false"
+    "returnStationElements": f"{returnStationElements.strip().upper()}",
     }
     
     request = requests.get(URL,params=params )
     
-    data = request.json()  
+    data = request.json() 
+    
     df = pd.DataFrame(data)
-    return df
+    
+    if returnType.strip().upper() == "GPD":
+        gdf = gpd.GeoDataFrame(df,
+            geometry= gpd.points_from_xy(df.longitude,df.latitude),
+            crs = "EPSG:4326" )
+
+        return gdf
+    else:
+        return df
+    
     
     
         
@@ -283,21 +359,21 @@ if __name__ == "__main__": #main header gaurder
     # print(data[0]['latitude'])
     # print(data[0]['elevation'])
     
-    df = get_stations(county_name = "Boulder")
-    print(df)
+    gdf = get_stations(county_name = "Boulder",returnType='gpd')
+    print(gdf)
 
-    print(df[df['elevation'] > 9000])
-    station_boulder_highest = df[df['elevation'] > 9000]['stationTriplet']
-    list1 = station_boulder_highest.to_list()
+    # print(df[df['elevation'] > 9000])
+    # station_boulder_highest = df[df['elevation'] > 9000]['stationTriplet']
+    # list1 = station_boulder_highest.to_list()
     
     
-    ds = fetch_data(list1, "PREC", "CALENDAR_YEAR")
+    # ds = fetch_data(list1, "PREC", "CALENDAR_YEAR")
     
-    ds['PREC'].isel(station = 0).plot(label = 'station 0')
-    ds['PREC'].isel(station = 1).plot(label = 'station 1')
-    ds['PREC'].isel(station = 2).plot(label = 'station 2')
-    ds['PREC'].isel(station = 3).plot(label = 'station 3')
-    ds['PREC'].isel(station = 4).plot(label = 'station 4')
-    plt.legend()
-    plt.show()
+    # ds['PREC'].isel(station = 0).plot(label = 'station 0')
+    # ds['PREC'].isel(station = 1).plot(label = 'station 1')
+    # ds['PREC'].isel(station = 2).plot(label = 'station 2')
+    # ds['PREC'].isel(station = 3).plot(label = 'station 3')
+    # ds['PREC'].isel(station = 4).plot(label = 'station 4')
+    # plt.legend()
+    # plt.show()
    
