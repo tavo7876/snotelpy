@@ -166,7 +166,7 @@ def fetch_data(stations=[], elements="", duration="DAILY", start_date = "1991-01
     last_date_values = data[0]['data'][0]['values'][-1]#finds the last date of the values from station 1(should be the right end date for all stations, 
     #i dont know what would happen if the sntl station is no longer active it may set the enddate to a date we dont want)
     last_date = _parse_dates([last_date_values],duration=duration)[0]#converts to a format based on what we need
-    
+   
     #looks in the freqmap for the value that matches the duration for the pd date range
     frequency = freq_map[duration.strip().upper()]
     dates = pd.date_range(start_date,last_date,freq=frequency)# builds are date time index 
