@@ -154,10 +154,29 @@ def fetch_data(stations=[], elements="", duration="DAILY", start_date = "1991-01
     #build a stationlist
     station_list = [station['stationTriplet'] for station in data]
     
-    #call phrase dates
+    freq_map = {
+        'DAILY' : "D",
+        'HOURLY': "H",
+        'SEMIMONTHLY': "SMS",
+        'MONTHLY': "MS",
+        'CALENDAR_YEAR' : "YS",
+        'WATER_YEAR' : "YS-OCT"
+    }
+    
+    last_date_values = data[0]['data'][0]['values'][-1]#finds the last date of the values from station 1(should be the right end date for all stations, 
+    #i dont know what would happen if the sntl station is no longer active it may set the enddate to a date we dont want)
+    last_date = _parse_dates([last_date_values],duration=duration)[0]#converts to a format based on what we need
+    
+    #looks in the freqmap for the value that matches the duration for the pd date range
+    frequency = freq_map[duration.strip().upper()]
+    dates = pd.date_range(start_date,last_date,freq=frequency)# builds are date time index 
+    
+    
+    #call phrase dates(old)
 
-    values = data[0]['data'][0]['values']
-    dates = _parse_dates(values, duration) #builds us a date time index based on the duration choosen 
+    # values = data[0]['data'][0]['values']
+    # print(values)
+    # dates = _parse_dates(values, duration) #builds us a date time index based on the duration choosen 
    
     
     #building dat_vars loop
@@ -191,7 +210,6 @@ def fetch_data(stations=[], elements="", duration="DAILY", start_date = "1991-01
     
                       # build dates for THIS variable's values
                     var_dates = _parse_dates(var['values'], duration) #builds your date for the varibles values(needs to be insde the loop for each sation seperate dates)
-                    
                 # match each value to its position in master dates
                 for j, d in enumerate(var_dates): # if d is in dates 
                     if d in dates: # if d in the varibles(prec, wteq, ect...)dates matches with the dates values in the stations first element, then:
@@ -255,7 +273,7 @@ def station_info(station_triplet="",):
     return request.json()
 
 
-def get_stations(station_triplets ="::SNTL", elements = "", hucs = "", county_name ="", station_name = "",returnStationElements = "false",returnType = 'pd'):
+def get_stations(station_triplets ="::SNTL", elements = "", hucs = [], county_name ="", station_name = "",returnStationElements = "false",returnType = 'pd'):
     """
     Retrieve SNOTEL station metadata from the USDA AWDB REST API.
 
@@ -269,8 +287,8 @@ def get_stations(station_triplets ="::SNTL", elements = "", hucs = "", county_na
     elements : str, optional
         Filter stations by element code, by default '' (no filter).
         Examples: 'PREC', 'WTEQ'
-    hucs : str, optional
-        Filter stations by HUC watershed code, by default '' (no filter).
+    hucs : list of str, optional
+        Filter stations by HUC watershed code, by default [] (no filter).
     county_name : str, optional
         Filter stations by county name, by default '' (no filter).
         Example: 'Boulder'
@@ -301,7 +319,7 @@ def get_stations(station_triplets ="::SNTL", elements = "", hucs = "", county_na
     params = {
     "stationTriplets": f"{station_triplets.strip().upper()}",
     "elements": f"{elements.strip().upper()}",
-    "hucs": f"{hucs.strip()}",
+    "hucs": hucs,
     "countyNames": f"{county_name.strip().upper()}",
     "stationNames": f"{station_name.strip().upper()}",
     "returnStationElements": f"{returnStationElements}",
@@ -310,6 +328,17 @@ def get_stations(station_triplets ="::SNTL", elements = "", hucs = "", county_na
     request = requests.get(URL,params=params )
     
     data = request.json() 
+    
+    
+    #throw error if didnt retrive propraly 
+    if request.status_code !=200:
+        raise ValueError(f"API request failed with status code {request.status_code}: {request.text}")
+        return
+    # returns a list 
+    data = request.json()
+    if len(data) == 0:
+        raise ValueError(f"API request was Successfull but contained no data: {data}")
+        return
     
     df = pd.DataFrame(data)
     
