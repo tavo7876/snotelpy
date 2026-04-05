@@ -3,7 +3,7 @@ import xarray as xr
 
 
 
-def swe_timeseries(ds, element = "WTEQ", ShowPlot = True):
+def element_timeseries(ds, element = "WTEQ", ShowPlot = True):
     '''
     ------
     enter a ds
