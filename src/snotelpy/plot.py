@@ -11,7 +11,7 @@ def element_timeseries(ds, element = "WTEQ", ShowPlot = True):
 
     fig, ax = plt.subplots()
     for station in ds.station.values:
-        ds[element.strip().upper()].sel(station=station).plot(ax=ax,label=station)
+        ds[element.strip().upper()].sel(station=station).plot(ax=ax,label=station,marker = 'o')
         
     ax.legend()
     ax.grid(True, alpha = 0.3)
