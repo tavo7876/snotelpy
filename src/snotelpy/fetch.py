@@ -44,13 +44,13 @@ def _parse_dates(values, duration):
     if duration.strip().upper() in ["DAILY", "HOURLY"]:
     
         dates = pd.to_datetime(df['date'])
-        return pd.DatetimeIndex(dates)
+        return pd.DatetimeIndex(dates, name="time")
         
         
     elif duration.strip().upper() == "SEMIMONTHLY":
        
         dates = pd.to_datetime(df['collectionDate'])
-        return pd.DatetimeIndex(dates)
+        return pd.DatetimeIndex(dates, name="time")
     
     elif duration.strip().upper() == "MONTHLY":
         dates = pd.to_datetime({
@@ -59,7 +59,7 @@ def _parse_dates(values, duration):
             'day': 1 
             
                         })
-        return pd.DatetimeIndex(dates)
+        return pd.DatetimeIndex(dates, name="time")
         
     elif duration.strip().upper() == "CALENDAR_YEAR":
         dates = pd.to_datetime({
@@ -68,7 +68,7 @@ def _parse_dates(values, duration):
             'day': 1 
             
                         })
-        return pd.DatetimeIndex(dates)
+        return pd.DatetimeIndex(dates, name="time")
     elif duration.strip().upper() == "WATER_YEAR":
         dates = pd.to_datetime({
             'year': df['year'],
@@ -76,7 +76,7 @@ def _parse_dates(values, duration):
             'day': 1 
             
                         })
-        return pd.DatetimeIndex(dates)
+        return pd.DatetimeIndex(dates, name="time")
   
 
 def fetch_data(stations=[], elements="", duration="DAILY", start_date = "1991-01-01", end_date = "2100-01-01"): 
@@ -304,7 +304,7 @@ def get_stations(station_triplets ="::SNTL", elements = "", hucs = "", county_na
     "hucs": f"{hucs.strip()}",
     "countyNames": f"{county_name.strip().upper()}",
     "stationNames": f"{station_name.strip().upper()}",
-    "returnStationElements": f"{returnStationElements.strip().upper()}",
+    "returnStationElements": f"{returnStationElements}",
     }
     
     request = requests.get(URL,params=params )
