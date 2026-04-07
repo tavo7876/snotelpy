@@ -244,6 +244,9 @@ def fetch_data(stations=[], elements="", duration="DAILY", start_date = "1991-01
         longitude=("station",df_aligned['longitude'] ),
         elevation=("station", df_aligned['elevation'] )
         )
+        ds.coords['elevation'].attrs['units'] = 'feet'
+        ds.coords['latitude'].attrs['units'] = 'latitude'
+        ds.coords['longitude'].attrs['units'] = 'longitude'
     
 
     for var_name in ds.data_vars: #stores metadate from ELEMENTS.yaml
