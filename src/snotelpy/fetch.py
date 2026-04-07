@@ -79,7 +79,7 @@ def _parse_dates(values, duration):
         return pd.DatetimeIndex(dates, name="time")
   
 
-def fetch_data(stations=[], elements="", duration="DAILY", start_date = "1991-01-01", end_date = "2100-01-01"): 
+def fetch_data(stations=[], elements="", duration="DAILY", start_date = "1991-01-01", end_date = "2100-01-01", include_coords = False): 
     '''
     Fetch data from the USDA AWDB REST API for one or more SNOTEL stations.
 
@@ -233,6 +233,18 @@ def fetch_data(stations=[], elements="", duration="DAILY", start_date = "1991-01
             "station": station_list
         }
     )
+    
+    #adding lat/lon, and elevation into the xarray, 
+    if include_coords:
+        df = get_stations(stations,elements=elements,returnType='pd')
+        df_aligned = df.set_index('stationTriplet').loc[stations]
+        
+        ds = ds.assign_coords(
+        latitude=("station",df_aligned['latitude'] ),
+        longitude=("station",df_aligned['longitude'] ),
+        elevation=("station", df_aligned['elevation'] )
+        )
+    
 
     for var_name in ds.data_vars: #stores metadate from ELEMENTS.yaml
         if var_name in var_metadata:
@@ -273,13 +285,13 @@ def station_info(station_triplet="",):
     return request.json()
 
 
-def get_stations(station_triplets ="::SNTL", elements = "", hucs = [], county_name ="", station_name = "",returnStationElements = "false",returnType = 'pd'):
+def get_stations(station_triplets =["::SNTL"], elements = "", hucs = [], county_name ="", station_name = "",returnStationElements = "false",returnType = 'pd'):
     """
     Retrieve SNOTEL station metadata from the USDA AWDB REST API.
 
     Parameters
     ----------
-    station_triplets : str, optional
+    station_triplets : List, optional
         A comma separated list of station triplets in the format 
         'stationId:stateCode:networkCode', by default '::SNTL' (all SNOTEL stations).
         Any portion of the triplet can contain the '*' wildcard character.
@@ -315,9 +327,9 @@ def get_stations(station_triplets ="::SNTL", elements = "", hucs = [], county_na
     """
     
     URL = 'https://wcc.sc.egov.usda.gov/awdbRestApi/services/v1/stations'
-    
+    station_string = ",".join(station_triplets)
     params = {
-    "stationTriplets": f"{station_triplets.strip().upper()}",
+    "stationTriplets": f"{station_string.strip().upper()}",
     "elements": f"{elements.strip().upper()}",
     "hucs": hucs,
     "countyNames": f"{county_name.strip().upper()}",
