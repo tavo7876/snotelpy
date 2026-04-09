@@ -78,8 +78,31 @@ def _parse_dates(values, duration):
                         })
         return pd.DatetimeIndex(dates, name="time")
   
-
-def fetch_data(stations=[], elements="", duration="DAILY", start_date = "1991-01-01", end_date = "2100-01-01", include_coords = False): 
+def _chunkgen(duration, stations=[], elements=[], start_date="", end_date=""):
+ #relates the API's frquencys to pandas frequencys
+    freq_map = {
+        'DAILY' : "D",
+        'HOURLY': "h",
+        'SEMIMONTHLY': "SMS",
+        'MONTHLY': "MS",
+        'CALENDAR_YEAR' : "YS",
+        'WATER_YEAR' : "YS-OCT"
+    }
+    #looks in the freqmap for the value that matches the duration for the pd date range
+    frequency = freq_map[duration.strip().upper()] 
+    #calculate estimated data points because we could have upto 1,855,152,000 differnt datapoints for all stations and all elements hourly
+    est_n_stations = len(stations)
+    est_n_varibles = len(elements)
+    end_date_for_est = min(pd.Timestamp(end_date), pd.Timestamp.today().strftime('%Y-%m-%d'))
+    date_frame_est = pd.date_range(start_date, end_date_for_est, freq= frequency)
+    est_n_time_steps = len(date_frame_est)  #estimates the amount of time steps 
+    estimated_points = est_n_stations * est_n_varibles * est_n_time_steps 
+    
+    n_chunks = math.ceil(estimated_points / 500_000)
+    
+    return n_chunks, estimated_points
+    
+def _fetch_data(stations=[], elements=[], duration="DAILY", start_date = "1991-01-01", end_date = "2100-01-01", include_coords = False): 
     '''
     Fetch data from the USDA AWDB REST API for one or more SNOTEL stations.
 
@@ -89,11 +112,11 @@ def fetch_data(stations=[], elements="", duration="DAILY", start_date = "1991-01
         A list of station triplets in the format 'stationId:stateCode:networkCode'.
         Any portion of the triplet can contain the '*' wildcard character.
         Examples: ['602:CO:SNTL'], ['*:OR:SNTL', '*:WA:SNTL']
-    elements : str
+    elements : list
         A comma separated list of elements in the format elementCode:heightDepth:ordinal.
         Any part of the element string can contain the '*' wildcard character.
         HeightDepth and ordinal are optional, defaulting to null and 1 respectively.
-        Examples: 'PREC', 'WTEQ', 'SMS:*', 'PREC::2'
+        Examples: ['PREC', 'WTEQ'], 'SMS:*', 'PREC::2'
     duration : str, optional
         The time duration of the data to retrieve, by default 'DAILY'.
         Options:
@@ -121,20 +144,26 @@ def fetch_data(stations=[], elements="", duration="DAILY", start_date = "1991-01
     ValueError
         If the API request fails or returns no data.
     '''
-    
+   
+  
+ 
     
     url = "https://wcc.sc.egov.usda.gov/awdbRestApi/services/v1/data"# base URL
     
     
     station_string = ",".join(stations)
+    elements_string = ",".join(elements)
     #all paramters striped of whitespace and all uppercased 
     params = {
         "stationTriplets": f"{station_string.strip().upper()}",
-        "elements": f"{elements.strip().upper()}",
+        "elements": f"{elements_string.strip().upper()}",
         "duration": f"{duration.strip().upper()}",
         "beginDate": f"{start_date.strip()}",
         "endDate": f"{end_date.strip()}",
     }
+    
+    _chunkgen(duration,stations,elements,start_date,end_date)
+    
     
     response = requests.get(url, params= params) #requests api from base url with the params restful api
     
@@ -154,50 +183,35 @@ def fetch_data(stations=[], elements="", duration="DAILY", start_date = "1991-01
     #build a stationlist
     station_list = [station['stationTriplet'] for station in data]
     
+   
+    
+     #relates the API's frquencys to pandas frequencys
     freq_map = {
         'DAILY' : "D",
-        'HOURLY': "H",
+        'HOURLY': "h",
         'SEMIMONTHLY': "SMS",
         'MONTHLY': "MS",
         'CALENDAR_YEAR' : "YS",
         'WATER_YEAR' : "YS-OCT"
     }
-    
+    #looks in the freqmap for the value that matches the duration for the pd date range
+    frequency = freq_map[duration.strip().upper()] 
     last_date_values = data[0]['data'][0]['values'][-1]#finds the last date of the values from station 1(should be the right end date for all stations, 
     #i dont know what would happen if the sntl station is no longer active it may set the enddate to a date we dont want)
     last_date = _parse_dates([last_date_values],duration=duration)[0]#converts to a format based on what we need
-   
-    #looks in the freqmap for the value that matches the duration for the pd date range
-    frequency = freq_map[duration.strip().upper()]
     dates = pd.date_range(start_date,last_date,freq=frequency)# builds are date time index 
     
-    
-    #call phrase dates(old)
-
-    # values = data[0]['data'][0]['values']
-    # print(values)
-    # dates = _parse_dates(values, duration) #builds us a date time index based on the duration choosen 
    
-    
     #building dat_vars loop
-    with open(Config.ELEMENTS_YAML_PATH, 'r') as f:
-        var_metadata = yaml.load(f, Loader=yaml.SafeLoader)
-        
+    with open(Config.ELEMENTS_YAML_PATH, 'r') as f:#open element metadata
+        var_metadata = yaml.load(f, Loader=yaml.SafeLoader)  
+         
     data_vars = {}
-
-
-
     variables  = [var['stationElement']['elementCode'] for var in data[0]['data']]
  
     n_times    = len(dates)
     n_stations = len(station_list)
     
-    
-    #testing function 
-    
-    
-    
-    #loop
     #structure dictionary -> list -> dictionary -> list -> dictionaries.
     for element_code in variables: #loops through elementcodes ex: [PREC, WTEQ]
         # grid = np.zeros((n_times, n_stations))  # full grid upfront
@@ -220,7 +234,7 @@ def fetch_data(stations=[], elements="", duration="DAILY", start_date = "1991-01
     
         data_vars[element_code] = (["time", "station"], grid) #build the dictionary array coresponding to the data 
     
-    var_dates = _parse_dates(var['values'], duration)
+    # var_dates = _parse_dates(var['values'], duration) -->prob dont need this, leave it commented for now just in case
     
     
         
@@ -231,6 +245,11 @@ def fetch_data(stations=[], elements="", duration="DAILY", start_date = "1991-01
         coords={
             "time": dates,
             "station": station_list
+        },
+        attrs={
+        'source': 'USDA NRCS AWDB REST API',
+        'network': 'SNOTEL',
+        'duration': duration
         }
     )
     
@@ -254,9 +273,7 @@ def fetch_data(stations=[], elements="", duration="DAILY", start_date = "1991-01
             ds[var_name].attrs = var_metadata[var_name]
     
     return ds
-            
-
-    
+             
 def station_info(station_triplet="",): 
     '''
     Get station metadata from USDA AWDB REST API for one SNOTEL stations. 
@@ -287,8 +304,7 @@ def station_info(station_triplet="",):
     
     return request.json()
 
-
-def get_stations(station_triplets =["::SNTL"], elements = "", hucs = [], county_name ="", station_name = "",returnStationElements = "false",returnType = 'pd'):
+def get_stations(station_triplets =["::SNTL"], elements = [], hucs = [], county_name ="", station_name = "",returnStationElements = "false",returnType = 'pd'):
     """
     Retrieve SNOTEL station metadata from the USDA AWDB REST API.
 
@@ -299,9 +315,9 @@ def get_stations(station_triplets =["::SNTL"], elements = "", hucs = [], county_
         'stationId:stateCode:networkCode', by default '::SNTL' (all SNOTEL stations).
         Any portion of the triplet can contain the '*' wildcard character.
         Examples: '602:CO:SNTL', '*:CO:SNTL'
-    elements : str, optional
-        Filter stations by element code, by default '' (no filter).
-        Examples: 'PREC', 'WTEQ'
+    elements : list, optional
+        Filter stations by element code, by default '' (no filter), comma seperated list, can include wildcard *. 
+        Examples: ['PREC', 'WTEQ']
     hucs : list of str, optional
         Filter stations by HUC watershed code, by default [] (no filter).
     county_name : str, optional
@@ -331,9 +347,10 @@ def get_stations(station_triplets =["::SNTL"], elements = "", hucs = [], county_
     
     URL = 'https://wcc.sc.egov.usda.gov/awdbRestApi/services/v1/stations'
     station_string = ",".join(station_triplets)
+    station_elements=",".join(elements)
     params = {
     "stationTriplets": f"{station_string.strip().upper()}",
-    "elements": f"{elements.strip().upper()}",
+    "elements": f"{station_elements.strip().upper()}",
     "hucs": hucs,
     "countyNames": f"{county_name.strip().upper()}",
     "stationNames": f"{station_name.strip().upper()}",
@@ -365,12 +382,37 @@ def get_stations(station_triplets =["::SNTL"], elements = "", hucs = [], county_
         return gdf
     else:
         return df
+          
+def save_data(data, filename = "filename"):
+    '''
+    Save a xarray data set to a NETcdf, and a Pandas/Geopandas dataframe to a csv. 
     
+    Parameters
+    ----------
+    data : any
+        Data that you want converted to a Netcdf of to a csv, 
+        A xarray dataset will convert to a Netcdf
+        A Geopandas/Pandas dataframe will convert to a csv.
+    filename : str, optional
+        
     
+    '''
     
+    if isinstance(data, xr.Dataset):
+        data.to_netcdf(f"{filename}.nc","w")
+    elif isinstance(data, pd.DataFrame):
+        data.to_csv(f"{filename}.csv")
+    else:
+        raise TypeError(f"Expected a xarray dataset, geopandas dataframe, pandas dataframe for data, but got {type(data).__name__}")
+    
+def fetch_snotel(stations=[], elements=[], duration="DAILY", start_date = "1991-01-01", end_date = "2100-01-01", include_coords = False):
+    n_chunks, estimated_chunks = _chunkgen(duration, stations=[], elements=[], start_date="", end_date="")
+    if estimated_chunks > 500_000:
+        for i in range(n_chunks):
+            
         
-        
-        
+    else:
+       return (_fetch_data(stations= stations, elements= elements, duration = duration, start_date= start_date, end_date=end_date, include_coords= False))
         
         
         
@@ -387,9 +429,7 @@ def get_stations(station_triplets =["::SNTL"], elements = "", hucs = [], county_
 
 if __name__ == "__main__": #main header gaurder  
     
-    station1 = "602:CO:sntl, 617:AZ:SNTL"
-    elements = "PREC"
-    
+  
     # ds = fetch_data(station1,elements  ,duration="MONTHLY")
     
     # print(ds)
@@ -403,16 +443,17 @@ if __name__ == "__main__": #main header gaurder
     # print(data[0]['latitude'])
     # print(data[0]['elevation'])
     
-    gdf = get_stations(county_name = "Boulder",returnType='gpd')
-    print(gdf)
+    # gdf = get_stations(county_name = "Boulder",returnType='gpd')
+    # print(gdf)
 
     # print(df[df['elevation'] > 9000])
     # station_boulder_highest = df[df['elevation'] > 9000]['stationTriplet']
     # list1 = station_boulder_highest.to_list()
     
-    
-    # ds = fetch_data(list1, "PREC", "CALENDAR_YEAR")
-    
+    df = get_stations(elements=['WTEQ', 'PREC'],county_name='Boulder',returnType='gpd')
+    print(df)
+    ds = _fetch_data([':CO:SNTL'],duration="HOURLY",elements=['PREC'])
+   
     # ds['PREC'].isel(station = 0).plot(label = 'station 0')
     # ds['PREC'].isel(station = 1).plot(label = 'station 1')
     # ds['PREC'].isel(station = 2).plot(label = 'station 2')
@@ -420,4 +461,6 @@ if __name__ == "__main__": #main header gaurder
     # ds['PREC'].isel(station = 4).plot(label = 'station 4')
     # plt.legend()
     # plt.show()
-   
+  
+    
+  
