@@ -14,11 +14,11 @@ def element_timeseries(ds, element = "WTEQ", ShowPlot = True, ax=None):
     for station in ds.station.values:
         ds[element.strip().upper()].sel(station=station).plot(ax=ax,label=station,marker = 'o')
         
-    ax.legend()
+    # ax.legend(loc='upper left', bbox_to_anchor=(1, 1), fontsize=7)
     ax.grid(True, alpha = 0.3)
-    ax.set_title(f"{element} time series")
-    ax.set_xlabel('Time')
-    plt.setp(ax.xaxis.get_majorticklabels(), rotation=45)
+    ax.set_title(f"{element} time series", fontsize = 9)
+    # ax.set_xlabel('Time')
+    plt.xticks(rotation=45)
     
     if ShowPlot:
         plt.show() 
