@@ -79,6 +79,17 @@ def _parse_dates(values, duration):
         return pd.DatetimeIndex(dates, name="time")
   
 def _chunkgen(duration, stations=[], elements=[], start_date="", end_date=""):
+    '''
+    Private function that builds estimations for number of chunks and total data points
+    
+    Note
+    ----
+    Could use some editing later for effecincy, find another way to get all the staions requested
+    '''
+    
+
+ 
+ 
  #relates the API's frquencys to pandas frequencys
     freq_map = {
         'DAILY' : "D",
@@ -91,9 +102,10 @@ def _chunkgen(duration, stations=[], elements=[], start_date="", end_date=""):
     #looks in the freqmap for the value that matches the duration for the pd date range
     frequency = freq_map[duration.strip().upper()] 
     #calculate estimated data points because we could have upto 1,855,152,000 differnt datapoints for all stations and all elements hourly
-    est_n_stations = len(stations)
+    total_stations = get_stations(station_triplets=stations)
+    est_n_stations = len(total_stations)
     est_n_varibles = len(elements)
-    end_date_for_est = min(pd.Timestamp(end_date), pd.Timestamp.today().strftime('%Y-%m-%d'))
+    end_date_for_est = min(pd.Timestamp(end_date), pd.Timestamp.today())
     date_frame_est = pd.date_range(start_date, end_date_for_est, freq= frequency)
     est_n_time_steps = len(date_frame_est)  #estimates the amount of time steps 
     estimated_points = est_n_stations * est_n_varibles * est_n_time_steps 
@@ -104,7 +116,9 @@ def _chunkgen(duration, stations=[], elements=[], start_date="", end_date=""):
     
 def _fetch_data(stations=[], elements=[], duration="DAILY", start_date = "1991-01-01", end_date = "2100-01-01", include_coords = False): 
     '''
+    Private function
     Fetch data from the USDA AWDB REST API for one or more SNOTEL stations.
+    Bulk of the code used in the master function fetch_snotel
 
     Parameters
     ----------
@@ -161,9 +175,6 @@ def _fetch_data(stations=[], elements=[], duration="DAILY", start_date = "1991-0
         "beginDate": f"{start_date.strip()}",
         "endDate": f"{end_date.strip()}",
     }
-    
-    _chunkgen(duration,stations,elements,start_date,end_date)
-    
     
     response = requests.get(url, params= params) #requests api from base url with the params restful api
     
@@ -383,19 +394,31 @@ def get_stations(station_triplets =["::SNTL"], elements = [], hucs = [], county_
     else:
         return df
           
-def save_data(data, filename = "filename"):
+def save_data(data, filename = "snotel_data"):
     '''
-    Save a xarray data set to a NETcdf, and a Pandas/Geopandas dataframe to a csv. 
-    
+    Saves data into a NetCDF or a .csv
+
     Parameters
     ----------
-    data : any
-        Data that you want converted to a Netcdf of to a csv, 
-        A xarray dataset will convert to a Netcdf
-        A Geopandas/Pandas dataframe will convert to a csv.
+    data : xr.Dataset or pd.DataFrame or gpd.GeoDataFrame
+        xr.Dataset saves the data to a NetCDF, the pd and gpd dataframes save to a .csv
     filename : str, optional
-        
+        controls your file name,
+        default is "snotel_data"
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    TypeError
+        Gets raised if the data inputed doesent match possbile data set choosen. 
     
+    Examples
+    --------
+    ds = fetch_snotel(...)
+    save_data(ds, filename="snotel_data")
     '''
     
     if isinstance(data, xr.Dataset):
@@ -406,13 +429,81 @@ def save_data(data, filename = "filename"):
         raise TypeError(f"Expected a xarray dataset, geopandas dataframe, pandas dataframe for data, but got {type(data).__name__}")
     
 def fetch_snotel(stations=[], elements=[], duration="DAILY", start_date = "1991-01-01", end_date = "2100-01-01", include_coords = False):
-    n_chunks, estimated_chunks = _chunkgen(duration, stations=[], elements=[], start_date="", end_date="")
-    if estimated_chunks > 500_000:
-        for i in range(n_chunks):
-            
-        
+    '''
+    Fetch data from the USDA AWDB REST API for one or more SNOTEL stations.
+    Automatically detects large requests exceeding the API's 500,000 data point 
+    limit and fetches data in chunks, then concatenates the results.
+
+    Parameters
+    ----------
+    stations : list
+        A list of station triplets in the format 'stationId:stateCode:networkCode'.
+        Any portion of the triplet can contain the '*' wildcard character.
+        Examples: ['602:CO:SNTL'], ['*:OR:SNTL', '*:WA:SNTL']
+    elements : list
+        A comma separated list of elements in the format elementCode:heightDepth:ordinal.
+        Any part of the element string can contain the '*' wildcard character.
+        HeightDepth and ordinal are optional, defaulting to null and 1 respectively.
+        Examples: ['PREC', 'WTEQ'], 'SMS:*', 'PREC::2'
+    duration : str, optional
+        The time duration of the data to retrieve, by default 'DAILY'.
+        Options:
+            - 'DAILY'
+            - 'HOURLY'
+            - 'SEMIMONTHLY'
+            - 'MONTHLY'
+            - 'CALENDAR_YEAR'
+            - 'WATER_YEAR'
+    start_date : str, optional
+        Begin date in 'YYYY-MM-DD' format, by default '1991-01-01'.
+        Relative dates accepted: 0 (current date) or -n where n corresponds to duration.
+    end_date : str, optional
+        End date in 'YYYY-MM-DD' format, by default '2100-01-01'.
+        Relative dates accepted: 0 (current date) or -n where n corresponds to duration.
+    include_coords : bool, optional
+    If True, attach latitude, longitude, and elevation as coordinates 
+    on the station dimension, by default False.
+
+    Returns
+    -------
+    xr.Dataset
+        An xarray Dataset with dimensions (time, station) containing the requested
+        elements as data variables, with metadata attributes loaded from ELEMENTS.yaml.
+
+    Raises
+    ------
+    ValueError
+        If the API request fails or returns no data.
+    Notes
+    For large requests, data is automatically fetched in multiple chunks 
+    and concatenated. Stations with no data for a given chunk will contain NaN values.
+    ''' 
+    
+    
+    n_chunks, estimated_chunks = _chunkgen(duration=duration, stations=stations, elements=elements, start_date=start_date, end_date=end_date)#chunk gen runs a extrra api pull could use optimization, maybe a 
+    if estimated_chunks > 500_000:#500,000 is max from api
+        print("DATA IS TO LARGE, CHUNKING REQUIRED...")
+        bounds = pd.date_range(start=start_date, end = min(pd.Timestamp(end_date), pd.Timestamp.today()), periods = n_chunks +1) #gets a date range from our starting date, to eaither today or the set endate for a good estimation
+        chunks = []#empty list that will be appened to with each chunk ds
+        for i in range(n_chunks):#builds a loop in range of the need chunks
+            chunk_start = bounds[i].strftime('%Y-%m-%d') # start date bound  chunk i 
+            chunk_end = bounds[i + 1].strftime('%Y-%m-%d')# end date bound chunk i + 1  
+            print(f"Fetching chunk {i+1} of {n_chunks}: {chunk_start} --> {chunk_end}")
+            chunk_ds = _fetch_data(# call fetch data for each chunk int
+                stations = stations,
+                elements = elements,
+                duration = duration,
+                start_date = chunk_start,
+                end_date = chunk_end,
+                include_coords = include_coords
+            )
+            print(f"Chunk {i+1} stations: {len(chunk_ds.station)}")
+            chunks.append(chunk_ds)# adds the ds to the chunks
+        ds = xr.concat(chunks, dim='time', join= 'outer')
+        ds = ds.isel(time=~pd.DatetimeIndex(ds.time.values).duplicated())#removees duplicated
+        return ds
     else:
-       return (_fetch_data(stations= stations, elements= elements, duration = duration, start_date= start_date, end_date=end_date, include_coords= False))
+       return (_fetch_data(stations= stations, elements= elements, duration = duration, start_date= start_date, end_date=end_date, include_coords= include_coords))
         
         
         
@@ -430,37 +521,8 @@ def fetch_snotel(stations=[], elements=[], duration="DAILY", start_date = "1991-
 if __name__ == "__main__": #main header gaurder  
     
   
-    # ds = fetch_data(station1,elements  ,duration="MONTHLY")
-    
-    # print(ds)
-    # ds['PREC'].isel(station=0).plot()
-    
-    # print(ds)
-    # plt.show()
-    
-    # data = station_info(":CO:SNTL")
-  
-    # print(data[0]['latitude'])
-    # print(data[0]['elevation'])
-    
-    # gdf = get_stations(county_name = "Boulder",returnType='gpd')
-    # print(gdf)
-
-    # print(df[df['elevation'] > 9000])
-    # station_boulder_highest = df[df['elevation'] > 9000]['stationTriplet']
-    # list1 = station_boulder_highest.to_list()
-    
-    df = get_stations(elements=['WTEQ', 'PREC'],county_name='Boulder',returnType='gpd')
-    print(df)
-    ds = _fetch_data([':CO:SNTL'],duration="HOURLY",elements=['PREC'])
+    ds = fetch_snotel([":CO:SNTL"],elements=['PREC','WTEQ','TAVG'],duration="DAILY",start_date="2020-01-01", end_date="2025-01-01")#will chunk data, this is on the low side, 2 chunks only
+    print(ds) #
    
-    # ds['PREC'].isel(station = 0).plot(label = 'station 0')
-    # ds['PREC'].isel(station = 1).plot(label = 'station 1')
-    # ds['PREC'].isel(station = 2).plot(label = 'station 2')
-    # ds['PREC'].isel(station = 3).plot(label = 'station 3')
-    # ds['PREC'].isel(station = 4).plot(label = 'station 4')
-    # plt.legend()
-    # plt.show()
-  
     
   
