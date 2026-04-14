@@ -3,7 +3,8 @@ import pytest
 import pandas as pd
 import xarray as xr
 import geopandas as gpd
-
+import numpy as np
+import os
 
 from snotelpy.fetch import (
     _parse_dates,
@@ -11,6 +12,7 @@ from snotelpy.fetch import (
     fetch_snotel,
     get_stations,
     station_info,
+    save_data
 )
 # ============================================================
 #_parse_dates
@@ -80,4 +82,120 @@ def test_get_stations_has_request_collumns():
     expected = ["stationTriplet", "latitude", "longitude", "elevation"]
     for col in expected:
         assert col in df.columns
+
+@pytest.mark.integration
+def test_get_stations_huc_filter_returns_results():
+    df = get_stations(hucs=["1019"])
+    assert len(df) > 0
+
+
+
+
+#---------------------------------------------------------------
+#station_info()
+#---------------------------------------------------------------
+@pytest.mark.integration
+def test_station_info_returns_list():
+    result = station_info("663:CO:SNTL")
+    assert isinstance(result, list)
+
+@pytest.mark.integration  
+def test_station_info_returns_known_station():
+    result = station_info("663:CO:SNTL")
+    assert result[0]["name"] == "Niwot"
+
+# @pytest.mark.integration
+# def test_station_info_has_location_fields():
+#     result = station_info("663:CO:SNTL")
+#     for field in result:
+#         assert field in result[0] ==  "latitude"
+
+
+
+
+
+#---------------------------------------------------------------
+#fetch_snotel()
+#---------------------------------------------------------------
+
+@pytest.mark.integration
+def test_fetch_returns_xarray_dataset():
+
+        result = _fetch_data(
+            stations=["602:CO:SNTL"],
+            elements=["PREC"],
+            duration="MONTHLY",
+            start_date="2000-01-01",
+            end_date="2001-01-01"
+        )
         
+        assert isinstance(result, xr.Dataset)
+
+
+
+@pytest.mark.integration
+def test_fetch_has_correct_dimensions(): 
+    result = _fetch_data(
+            stations=["602:CO:SNTL"],
+            elements=["PREC"],
+            duration="MONTHLY",
+            start_date="2000-01-01",
+            end_date="2001-01-01"
+         )
+       
+    assert "time" in result.dims
+    assert result.sizes == {'time': 13, 'station': 1}
+
+
+@pytest.mark.integration
+def test_fetch_has_correct_variable():
+ 
+        
+    result = _fetch_data(
+            stations=["602:CO:SNTL"],
+            elements=["PREC"],
+            duration="MONTHLY",
+            start_date="2000-01-01",
+            end_date="2001-01-01"
+            )
+        
+    assert "PREC" in result.data_vars
+
+
+
+@pytest.mark.integration
+def test_fetch_station_in_coords():
+
+        
+    result = _fetch_data(
+            stations=["602:CO:SNTL"],
+            elements=["PREC"],
+            duration="MONTHLY",
+            start_date="2000-01-01",
+            end_date="2001-01-01"
+            )
+       
+    assert "602:CO:SNTL" in result.coords['station'][0]
+
+
+
+
+
+#-----------------------------
+#save_data
+#-----------------------------
+def test_save_data_dataset_creates_nc(tmp_path):
+    ds = xr.Dataset(
+        {"WTEQ": (["time", "station"], np.zeros((3, 1)))}
+        )
+    
+    outfile = tmp_path / "test_output"
+    save_data(ds, filename=str(outfile))
+    assert os.path.exists(tmp_path)
+
+def test_save_data_wrong_type_raises_error():
+    with pytest.raises(TypeError):
+        save_data("not a dataset") 
+        
+        
+
