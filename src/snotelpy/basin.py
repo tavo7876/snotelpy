@@ -1,4 +1,4 @@
-from snotelpy.fetch import fetch_data, get_stations
+from snotelpy.fetch import fetch_snotel, get_stations
 from snotelpy import plot
 import matplotlib.pyplot as plt
 import contextily as ctx
@@ -9,9 +9,9 @@ def basin_summary(hucs = [], duration = "MONTHLY", start_date = "1991-10-01", en
     '''
     
     '''
-    elements = "WTEQ, PREC, SNWD, TAVG, TMAX, TMIN"
+    elements = ["WTEQ, PREC, SNWD, TAVG, TMAX, TMIN"]
     gdf = get_stations(hucs= hucs, returnType='gpd')
-    ds = fetch_data(gdf['stationTriplet'].tolist(),elements=elements, duration = duration ,start_date= start_date, end_date=end_date)
+    ds = fetch_snotel(gdf['stationTriplet'].tolist(),elements=elements, duration = duration ,start_date= start_date, end_date=end_date)
     print(ds)
     fig, axes = plt.subplots(4,2, figsize = (16,14))
     plot.element_timeseries(ds,"WTEQ", False,ax= axes[0, 0])
@@ -42,5 +42,5 @@ def basin_summary(hucs = [], duration = "MONTHLY", start_date = "1991-10-01", en
 
 
 if __name__ == "__main__":
-    basin_summary(hucs = ['1019'],start_date = "2025-01-01", end_date = "")
+    basin_summary(hucs = ['1019'],start_date = "2020-01-01", end_date = "2021-01-01")
     
