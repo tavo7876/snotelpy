@@ -78,7 +78,7 @@ def _parse_dates(values, duration):
                         })
         return pd.DatetimeIndex(dates, name="time")
   
-def _chunkgen(duration, stations=[], elements=[], start_date="", end_date=""):
+def _chunkgen(duration, stations=None, elements=None, start_date="", end_date=""):
     '''
     Private function that builds estimations for number of chunks and total data points
     
@@ -86,7 +86,11 @@ def _chunkgen(duration, stations=[], elements=[], start_date="", end_date=""):
     ----
     Could use some editing later for effecincy, find another way to get all the staions requested
     '''
-    
+    if stations is None:
+        stations=[]
+    if elements is None:
+        elements=[]
+  
 
  
  
@@ -114,7 +118,7 @@ def _chunkgen(duration, stations=[], elements=[], start_date="", end_date=""):
     
     return n_chunks, estimated_points
     
-def _fetch_data(stations=[], elements=[], duration="DAILY", start_date = "1991-01-01", end_date = "2100-01-01", include_coords = False): 
+def _fetch_data(stations=None, elements=None, duration="DAILY", start_date = "1991-01-01", end_date = "2100-01-01", include_coords = False): 
     '''
     Private function
     Fetch data from the USDA AWDB REST API for one or more SNOTEL stations.
@@ -158,7 +162,10 @@ def _fetch_data(stations=[], elements=[], duration="DAILY", start_date = "1991-0
     ValueError
         If the API request fails or returns no data.
     '''
-   
+    if stations is None:
+        stations=[]
+    if elements is None:
+        elements=[]
   
  
     
@@ -315,7 +322,7 @@ def station_info(station_triplet="",):
     
     return request.json()
 
-def get_stations(station_triplets =["::SNTL"], elements = [], hucs = [], county_name ="", station_name = "",returnStationElements = "false",returnType = 'pd'):
+def get_stations(station_triplets =["::SNTL"], elements = None, hucs = None, county_name ="", station_name = "",returnStationElements = "false",returnType = 'pd'):
     """
     Retrieve SNOTEL station metadata from the USDA AWDB REST API.
 
@@ -355,6 +362,13 @@ def get_stations(station_triplets =["::SNTL"], elements = [], hucs = [], county_
     ValueError
         If the API request fails.
     """
+    if station_triplets is None:
+        station_triplets=["::SNTL"]
+    if elements is None:
+        elements=[]
+    if hucs is None:
+        hucs = []
+  
     
     URL = 'https://wcc.sc.egov.usda.gov/awdbRestApi/services/v1/stations'
     station_string = ",".join(station_triplets)
@@ -428,7 +442,7 @@ def save_data(data, filename = "snotel_data"):
     else:
         raise TypeError(f"Expected a xarray dataset, geopandas dataframe, pandas dataframe for data, but got {type(data).__name__}")
     
-def fetch_snotel(stations=[], elements=[], duration="DAILY", start_date = "1991-01-01", end_date = "2100-01-01", include_coords = False):
+def fetch_snotel(stations=None, elements=None, duration="DAILY", start_date = "1991-01-01", end_date = "2100-01-01", include_coords = False):
     '''
     Fetch data from the USDA AWDB REST API for one or more SNOTEL stations.
     Automatically detects large requests exceeding the API's 500,000 data point 
@@ -478,7 +492,11 @@ def fetch_snotel(stations=[], elements=[], duration="DAILY", start_date = "1991-
     For large requests, data is automatically fetched in multiple chunks 
     and concatenated. Stations with no data for a given chunk will contain NaN values.
     ''' 
-    
+    if stations is None:
+        stations=[]
+    if elements is None:
+        elements=[]
+  
     
     n_chunks, estimated_chunks = _chunkgen(duration=duration, stations=stations, elements=elements, start_date=start_date, end_date=end_date)#chunk gen runs a extrra api pull could use optimization, maybe a 
     if estimated_chunks > 500_000:#500,000 is max from api
