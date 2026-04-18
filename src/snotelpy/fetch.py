@@ -250,12 +250,7 @@ def _fetch_data(stations=None, elements=None, duration="DAILY", start_date = "19
                     #possibilty to break if prec and wteq or other elements have differnt readings(but im not sure)
                    
     
-        data_vars[element_code] = (["time", "station"], grid) #build the dictionary array coresponding to the data 
-    
-    # var_dates = _parse_dates(var['values'], duration) -->prob dont need this, leave it commented for now just in case
-    
-    
-        
+        data_vars[element_code] = (["time", "station"], grid) #build the dictionary array coresponding to the data  
     
     #build the data set
     ds = xr.Dataset(
