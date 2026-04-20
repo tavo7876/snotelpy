@@ -14,11 +14,6 @@ from shapely.geometry import Point
 
 from snotelpy import Config 
 
-# from my_project.utils import helper_function
-# from my_project.constants import API_KEY
-
-
-
 
 def _parse_dates(values, duration):
     
@@ -108,15 +103,15 @@ def _chunkgen(duration, stations=None, elements=None, start_date="", end_date=""
     #calculate estimated data points because we could have upto 1,855,152,000 differnt datapoints for all stations and all elements hourly
     total_stations = get_stations(station_triplets=stations)
     est_n_stations = len(total_stations)
-    est_n_varibles = len(elements)
+    est_n_variables = len(elements)
     end_date_for_est = min(pd.Timestamp(end_date), pd.Timestamp.today())
     date_frame_est = pd.date_range(start_date, end_date_for_est, freq= frequency)
     est_n_time_steps = len(date_frame_est)  #estimates the amount of time steps 
-    estimated_points = est_n_stations * est_n_varibles * est_n_time_steps 
+    estimated_points = est_n_stations * est_n_variables * est_n_time_steps 
     
     n_chunks = math.ceil(estimated_points / 500_000)
     
-    return n_chunks, estimated_points
+    return n_chunks, estimated_pointsgo
     
 def _fetch_data(stations=None, elements=None, duration="DAILY", start_date = "1991-01-01", end_date = "2100-01-01", include_coords = False): 
     '''
