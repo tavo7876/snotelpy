@@ -12,8 +12,10 @@ I built this package as there is currently no activley maintained, modern Python
 ---
 
 ## Installation
-```bash
-pip install snotelpy
+```
+not yet installable unless, 'pip install snotelpy -e . ' editble 
+currently just clone from github repo and build then send a pull request 
+
 ```
 
 ---
