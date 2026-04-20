@@ -465,10 +465,10 @@ def fetch_snotel(stations=None, elements=None, duration="DAILY", start_date = "1
             - 'WATER_YEAR'
     start_date : str, optional
         Begin date in 'YYYY-MM-DD' format, by default '1991-01-01'.
-        Relative dates accepted: 0 (current date) or -n where n corresponds to duration.
+       
     end_date : str, optional
         End date in 'YYYY-MM-DD' format, by default '2100-01-01'.
-        Relative dates accepted: 0 (current date) or -n where n corresponds to duration.
+  
     include_coords : bool, optional
     If True, attach latitude, longitude, and elevation as coordinates 
     on the station dimension, by default False.
