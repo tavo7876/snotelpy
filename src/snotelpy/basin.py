@@ -9,24 +9,80 @@ def basin_summary(hucs=None,
                   duration="Daily", 
                   start_date="1991-01-01", 
                   end_date=None, 
-                  climatology_period=("1991-10-01", "2020-09-30")):
+                  climatology_period=("1991-10-01", "2025-09-30")):
     
     '''
-    Returns dict of datasets, with the three keys "basin_stats", "climatology", "stations"
+    Retrive a basin summary from the USDA AWDB REST API for a SNOTEL watershed basin denoted by Hydrologic Unit Code[HUC]. 
+    For information on HUC codes and how they are structured vist <https://nas.er.usgs.gov/hucs.aspx>
+    
+    Parameters
+    ----------
+    hucs : list
+        A list containg a HUC values from digits 2 to 12. 
+        Examples: [10], [1019]
+        Refer to <https://nas.er.usgs.gov/hucs.aspx> for HUC structure. 
+    elements : list
+        A comma separated list of elements in the format elementCode:heightDepth:ordinal.
+        Any part of the element string can contain the '*' wildcard character.
+        HeightDepth and ordinal are optional, defaulting to null and 1 respectively.
+        Examples: ['PREC', 'WTEQ'], 'SMS:*', 'PREC::2'
+    duration : str, optional
+        The time duration of the data to retrieve, by default 'DAILY'.
+        Options:
+            - 'DAILY'
+            - 'MONTHLY'
+        Note: Basin stats is the only duration effected data. Climatology is based on a 12 month average.  
+        
+    start_date : str, optional
+        Begin date in 'YYYY-MM-DD' format, by default '1991-01-01'.
+
+    end_date : str, optional
+        End date in 'YYYY-MM-DD' format, by default '2100-01-01'.
+    
+   climatology_period: tuple, optional
+        Foramt of tuple is start of climatology to end of climatology. Datetime format 'YYYY-MM-DD'. 
+        By default ("1991-10-01", "2025-09-30")):
+        This climatology has to fall within the dates of start_date and end_date. It wont throw a error but is important to consider when requesting.  
+   
+
+    Returns
+    -------
+    basin_stats
+        A xr.Datatset with dimensons (stat, time) containing the requested elements as data variables.
+        stat objects include 'MEAN' 'MEDIAN' 'MAX' 'MIN'.
+    climatology
+        A xr.Dataset with dimensions (climatology, month) containing the requested elements as data variables.
+        Objects of the climatology dimension include 'MEAN', 'MEDIAN'. 
+        This is a dataset of the mean or median of the basin for each month of the year averaged over a climatology_period.
+
+    Raises
+    ------
+    ValueError
+        If the API request fails or returns no data.
+    Notes
+    For large requests, data is automatically fetched in multiple chunks 
+    and concatenated. Basins with no data for a given chunk will contain NaN values.
+    
     
     '''
     if hucs is None:
         raise ValueError("No Specified Basin HUC")
     if end_date is None:
         end_date = "2100-01-01"
+    if not hucs:
+        raise ValueError("Hucs was empty or basin couldnt be requested")
         
     gdf = get_stations(hucs= hucs, returnType='gpd')
     
     ds = fetch_snotel(gdf['stationTriplet'].tolist(),elements=elements, duration = duration ,start_date= start_date, end_date=end_date)
     
-    n_stations = len(gdf)
+    n_stations = len(ds['station'])
+
+   
+    
+    
     #basin stats 
-    # -----
+    
     basin_mean = ds.mean(dim='station')
     basin_median = ds.median(dim = 'station')
     basin_max = ds.max(dim = 'station')
@@ -36,13 +92,15 @@ def basin_summary(hucs=None,
     basin_stats.attrs['hucs'] = hucs
     basin_stats.attrs['Number of Stations'] = n_stations
     basin_stats.attrs['Description'] = f"Basin-averaged statistics for HUC: {hucs}"
-    #------
+ 
+ 
+ 
    
     #climatology
     climatology_start = climatology_period[0]
     climatology_end = climatology_period[1]
     climatology_mean = basin_stats.sel(stat='MEAN', time=slice(climatology_start,climatology_end)).groupby("time.month").mean().drop_vars('stat')
-    climatology_median = basin_stats.sel(stat='MEDIAN', time=slice(climatology_start,climatology_end)).groupby("time.month").median().drop_vars('stat')
+    climatology_median = basin_stats.sel(stat='MEDIAN', time=slice(climatology_start,climatology_end)).groupby("time.month").mean().drop_vars('stat') # we use .mean here because its the median of all values over the mean of jan or aprl...ect
 
     climatology = xr.concat([climatology_mean, climatology_median],dim = pd.Index(["MEAN","MEDIAN"],dtype="object", name = 'climatology'))
     climatology.attrs['hucs'] = hucs
@@ -51,7 +109,8 @@ def basin_summary(hucs=None,
     climatology.attrs['Description'] = f"Monthly Climatology for HUC: {hucs}"
     
     
-    # Percent of median for WTEQ
+    # Percent of median for WTEQ:
+    
     # clima_df = climatology.sel(climatology = 'MEDIAN').to_pandas()
     # stats_df = basin_stats['WTEQ'].sel(stat = 'MEAN').to_pandas()
     
@@ -70,10 +129,12 @@ def basin_summary(hucs=None,
     # print(pct_of_median)
     # pct_of_median = pct_of_median.where(clim_series > 0.5)
     
+    
+    
     return {
         "basin_stats": basin_stats, 
         "climatology": climatology,
-        # "percent_of_median": percent_of_median,
+        # "percent_of_median": percent_of_median, #will add this function later hopefully. 
         "stations": gdf  
     }
 
@@ -85,15 +146,21 @@ def basin_summary(hucs=None,
 
 
 if __name__ == "__main__":
-    basin_sum = basin_summary(hucs=[160502], 
-                             start_date = "2000-10-01",
-                             end_date= "2025-10-01", 
-                             elements=['WTEQ'],
-                             climatology_period=("2000-10-01", "2025-10-01"))
+    basin_sum = basin_summary(hucs=[1019], 
+                            start_date = "2000-10-01",
+                            end_date= "2025-10-01", 
+                            elements=['WTEQ'],
+                            climatology_period=("2000-10-01", "2025-10-01"),
+                            duration = "MONTHLY"
+                            )
+                           
+                             
 
    
     
-    basin_stats = basin_sum['basin_stats']
+    print(basin_sum)
+    
+    
     
     # print(basin_stats['WTEQ'].sel(stat = 'MEAN').values.max())
     # percent_of_median = basin_sum['percent_of_median']
