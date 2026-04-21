@@ -490,13 +490,13 @@ def fetch_snotel(stations=None, elements=None, duration="DAILY", start_date = "1
     
     n_chunks, estimated_chunks = _chunkgen(duration=duration, stations=stations, elements=elements, start_date=start_date, end_date=end_date)#chunk gen runs a extrra api pull could use optimization, maybe a 
     if estimated_chunks > 500_000:#500,000 is max from api
-        print("DATA IS TO LARGE, CHUNKING REQUIRED...")
+        # print("DATA IS TO LARGE, CHUNKING REQUIRED...")
         bounds = pd.date_range(start=start_date, end = min(pd.Timestamp(end_date), pd.Timestamp.today()), periods = n_chunks +1) #gets a date range from our starting date, to eaither today or the set endate for a good estimation
         chunks = []#empty list that will be appened to with each chunk ds
         for i in range(n_chunks):#builds a loop in range of the need chunks
             chunk_start = bounds[i].strftime('%Y-%m-%d') # start date bound  chunk i 
             chunk_end = bounds[i + 1].strftime('%Y-%m-%d')# end date bound chunk i + 1  
-            print(f"Fetching chunk {i+1} of {n_chunks}: {chunk_start} --> {chunk_end}")
+            # print(f"Fetching chunk {i+1} of {n_chunks}: {chunk_start} --> {chunk_end}")
             chunk_ds = _fetch_data(# call fetch data for each chunk int
                 stations = stations,
                 elements = elements,
@@ -505,7 +505,7 @@ def fetch_snotel(stations=None, elements=None, duration="DAILY", start_date = "1
                 end_date = chunk_end,
                 include_coords = include_coords
             )
-            print(f"Chunk {i+1} stations: {len(chunk_ds.station)}")
+            # print(f"Chunk {i+1} stations: {len(chunk_ds.station)}")
             chunks.append(chunk_ds)# adds the ds to the chunks
         ds = xr.concat(chunks, dim='time', join= 'outer')
         ds = ds.isel(time=~pd.DatetimeIndex(ds.time.values).duplicated())#removees duplicated
@@ -528,9 +528,13 @@ def fetch_snotel(stations=None, elements=None, duration="DAILY", start_date = "1
 
 if __name__ == "__main__": #main header gaurder  
     
-  
-    ds = fetch_snotel([":CO:SNTL"],elements=['PREC','WTEQ','TAVG'],duration="DAILY",start_date="2020-01-01", end_date="2025-01-01")#will chunk data, this is on the low side, 2 chunks only
-    print(ds) #
+    fetch_snotel(
+    stations=["301:CA:SNTL"],
+    elements=["WTEQ", "PREC", "SNWD", "TAVG", "TMIN", "TMAX"],
+    duration="HOURLY",
+    start_date="1980-01-01",
+    end_date="2025-01-01",
+)
    
     
   
