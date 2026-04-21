@@ -111,7 +111,7 @@ def _chunkgen(duration, stations=None, elements=None, start_date="", end_date=""
     
     n_chunks = math.ceil(estimated_points / 500_000)
     
-    return n_chunks, estimated_pointsgo
+    return n_chunks, estimated_points
     
 def _fetch_data(stations=None, elements=None, duration="DAILY", start_date = "1991-01-01", end_date = "2100-01-01", include_coords = False): 
     '''
