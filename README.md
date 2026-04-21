@@ -13,7 +13,7 @@ I built this package as there is currently no activley maintained, modern Python
 
 ## Installation
 ```bash
-git clone https://github.com//snotelpy.git
+git clone https://github.com/tavo7876/snotelpy.git
 cd snotelpy
 pip install -e .
 
