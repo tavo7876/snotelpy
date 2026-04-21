@@ -47,13 +47,48 @@ def basin_summary(hucs=None,
 
     Returns
     -------
-    basin_stats
-        A xr.Datatset with dimensons (stat, time) containing the requested elements as data variables.
-        stat objects include 'MEAN' 'MEDIAN' 'MAX' 'MIN'.
-    climatology
-        A xr.Dataset with dimensions (climatology, month) containing the requested elements as data variables.
-        Objects of the climatology dimension include 'MEAN', 'MEDIAN'. 
-        This is a dataset of the mean or median of the basin for each month of the year averaged over a climatology_period.
+    result : dict
+        Dictionary containing three keys:
+
+        basin_stats : xarray.Dataset
+            Basin-averaged statistics across all stations in the requested
+            HUC(s), computed by the AWDB API.
+
+            Dimensions: (stat: 4, time: N)
+                - ``stat``: 'MEAN', 'MEDIAN', 'MAX', 'MIN'
+                - ``time``: datetime64, frequency matches the ``duration``
+                  argument ('DAILY' or 'MONTHLY').
+
+            Data variables: one per element requested (e.g. 'WTEQ', 'PREC'),
+            each with shape (stat, time) and dtype float64.
+
+            Attributes: ``source``, ``network``, ``duration``, ``hucs``,
+            ``Number of Stations``, ``Description``.
+
+        climatology : xarray.Dataset
+            Monthly climatology of basin-averaged values over
+            ``climatology_period``. Always monthly, regardless of the
+            ``duration`` argument.
+
+            Dimensions: (climatology: 2, month: 12)
+                - ``climatology``: 'MEAN', 'MEDIAN' (note: no MAX/MIN).
+                - ``month``: integers 1–12.
+
+            Data variables: one per element requested, each with shape
+            (climatology, month) and dtype float64.
+
+            Attributes: same keys as ``basin_stats``, with ``duration``
+            set to 'monthly climatology'.
+
+        stations : geopandas.GeoDataFrame
+            All SNOTEL stations located within the requested HUC(s),
+            as returned by ``get_stations``.
+
+            Key columns: ``stationTriplet``, ``name``, ``stateCode``,
+            ``elevation``, ``latitude``, ``longitude``, ``beginDate``,
+            ``endDate``, ``huc``, ``associatedHucs``, ``geometry``.
+
+            Geometry: POINT in EPSG:4326 (longitude, latitude).
 
     Raises
     ------
@@ -146,7 +181,7 @@ def basin_summary(hucs=None,
 
 
 if __name__ == "__main__":
-    basin_sum = basin_summary(hucs=[1019], 
+    out = basin_summary(hucs=[1019], 
                             start_date = "2000-10-01",
                             end_date= "2025-10-01", 
                             elements=['WTEQ'],
@@ -154,11 +189,14 @@ if __name__ == "__main__":
                             duration = "MONTHLY"
                             )
                            
-                             
+    print(out["basin_stats"])
+    print(out["climatology"])
+    print(out["stations"].head())
+    print(out["stations"].columns.tolist())                     
 
    
     
-    print(basin_sum)
+    # print(basin_sum)
     
     
     
@@ -170,5 +208,5 @@ if __name__ == "__main__":
     # print(percent_of_median.max().values)
     # print(percent_of_median.min().values)
     
-    plt.show()
+    # plt.show()
     
