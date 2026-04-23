@@ -9,7 +9,7 @@ def basin_summary(hucs=None,
                   duration="Daily", 
                   start_date="1991-01-01", 
                   end_date=None, 
-                  climatology_period=("1991-10-01", "2025-09-30")):
+                  climatology_period=("1991-10-01", "2020-09-30")):
     
     '''
     Retrive a basin summary from the USDA AWDB REST API for a SNOTEL watershed basin denoted by Hydrologic Unit Code[HUC]. 
