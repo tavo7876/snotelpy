@@ -6,6 +6,9 @@ import geopandas as gpd
 import numpy as np
 import os
 
+
+
+
 from snotelpy.fetch import (
     _parse_dates,
     _fetch_data,
@@ -14,6 +17,12 @@ from snotelpy.fetch import (
     station_info,
     save_data
 )
+from snotelpy.basin import basin_summary
+
+#run all with : $pytest -v -m 
+
+#run just api pulls with : $pytest -v -m integration
+
 # ============================================================
 #_parse_dates
 # ============================================================
@@ -178,7 +187,20 @@ def test_fetch_station_in_coords():
     assert "602:CO:SNTL" in result.coords['station'][0]
 
 
+#-----------------------------
+#basin_summary
+#-----------------------------
 
+@pytest.mark.integration
+def test_basin_summary_returns_correct_len_and_type():
+    basin_list = basin_summary(hucs = ['10190005'], 
+                  elements = ['WTEQ'], 
+                  start_date = "2020-10-01",
+                  end_date = "2025-10-01",
+                  climatology_period = ("2020-10-01","2025-10-01"))
+    assert len(basin_list) == 3
+    assert type(basin_list) is dict
+    
 
 
 #-----------------------------
