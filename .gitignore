@@ -29,3 +29,6 @@ Thumbs.db
 
 #other
 private_tests/
+
+/.quarto/
+**/*.quarto_ipynb
