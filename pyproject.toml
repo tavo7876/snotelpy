@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "snotelpy"
-version = "0.1.0"
+version = "0.1.1"
 description = "SNOTEL API Wrapper for the NRCS RESTful API for quick dataset/dataframe building"
 readme = "README.md"
 license = {text = "MIT"}
