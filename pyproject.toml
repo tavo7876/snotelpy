@@ -24,7 +24,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["build", "twine"]
+dev = ["build", "twine", "pytest]
 
 [tool.setuptools.packages.find]
 where = ["src"]

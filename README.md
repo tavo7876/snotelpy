@@ -13,9 +13,9 @@ I built this package as there is currently no activley maintained, modern Python
 
 ## Installation
 ```bash
-git clone https://github.com/tavo7876/snotelpy.git
-cd snotelpy
-pip install -e .
+ pip install --index-url https://test.pypi.org/simple/ \
+    --extra-index-url https://pypi.org/simple/ \
+    snotelpy
 
 ```
 
