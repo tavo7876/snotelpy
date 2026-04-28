@@ -5,9 +5,9 @@ Snotelpy is a lightweight Python Package interface for accessing USDA SNOTEL sta
 ---
 
 ## Motivation
-I built this package as there is currently no activley maintained, modern Python package built on the newer [NRCS AWDB RESTful API](https://wcc.sc.egov.usda.gov/awdbRestApi/swagger-ui/index.html). The pervious WSDL/SOAP API used to request SNOTEL data is being trasitioned away to the newer AWDB RESTful API.
+I built this package as there is currently no actively maintained, modern Python package built on the newer [NRCS AWDB RESTful API](https://wcc.sc.egov.usda.gov/awdbRestApi/swagger-ui/index.html). The previous WSDL/SOAP API used to request SNOTEL data is being transitioned away to the newer AWDB RESTful API.
 
-`snotelpy` fills this gap - giving researchers a simple, Python interface to fetch, filter, and analze snowpack data from SNOTEL statiosn without manually constructing API URLs or cleaning raw JSNO responses. 
+`snotelpy` fills this gap - giving researchers a simple, Python interface to fetch, filter, and analyze snowpack data from SNOTEL stations without manually constructing API URLs or cleaning raw JSNO responses. 
 
 ---
 
