@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "snotelpy"
-version = "0.1.1"
+version = "0.1.2"
 description = "SNOTEL API Wrapper for the NRCS RESTful API for quick dataset/dataframe building"
 readme = "README.md"
 license = {text = "MIT"}
@@ -20,7 +20,9 @@ dependencies = [
     "xarray >= 2023.1",
     "pyyaml >= 6.0",
     "geopandas>=1.0.0",
-    "shapely>=2.0.0"
+    "shapely>=2.0.0",
+    "contextily>=1.7.0",
+    "scipy >=1.10.0"
 ]
 
 [project.optional-dependencies]
