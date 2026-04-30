@@ -1,6 +1,7 @@
 import os
 import sys
 import math
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import requests
 import pandas as pd
@@ -110,7 +111,11 @@ def _chunkgen(duration, stations=None, elements=None, start_date="", end_date=""
     estimated_points = est_n_stations * est_n_variables * est_n_time_steps 
     
     n_chunks = math.ceil(estimated_points / 500_000)
-    
+    if estimated_points > 50_000:  # always parallelize across 8 chunks above the threshold; scale up if request exceeds 8*500k
+        n_chunks = max(8, n_chunks)
+    else:
+        n_chunks = 1  # tiny requests go in a single call to avoid HTTP overhead dominating
+
     return n_chunks, estimated_points
     
 def _fetch_data(stations=None, elements=None, duration="DAILY", start_date = "1991-01-01", end_date = "2100-01-01", include_coords = False): 
@@ -161,12 +166,12 @@ def _fetch_data(stations=None, elements=None, duration="DAILY", start_date = "19
         stations=[]
     if elements is None:
         elements=[]
-  
- 
-    
+
+
+
     url = "https://wcc.sc.egov.usda.gov/awdbRestApi/services/v1/data"# base URL
-    
-    
+
+
     station_string = ",".join(stations)
     elements_string = ",".join(elements)
     #all paramters striped of whitespace and all uppercased 
@@ -486,44 +491,41 @@ def fetch_snotel(stations=None, elements=None, duration="DAILY", start_date = "1
         stations=[]
     if elements is None:
         elements=[]
-  
-    
-    n_chunks, estimated_chunks = _chunkgen(duration=duration, stations=stations, elements=elements, start_date=start_date, end_date=end_date)#chunk gen runs a extrra api pull could use optimization, maybe a 
-    if estimated_chunks > 500_000:#500,000 is max from api
+
+    n_chunks, estimated_chunks = _chunkgen(duration=duration, stations=stations, elements=elements,
+                                           start_date=start_date,
+                                           end_date=end_date)  # chunk gen runs a extrra api pull could use optimization, maybe a
+    if estimated_chunks > 50_000:  # parallelize anything meaningfully sized; tiny requests fall through to single call
         # print("DATA IS TO LARGE, CHUNKING REQUIRED...")
-        bounds = pd.date_range(start=start_date, end = min(pd.Timestamp(end_date), pd.Timestamp.today()), periods = n_chunks +1) #gets a date range from our starting date, to eaither today or the set endate for a good estimation
-        chunks = []#empty list that will be appened to with each chunk ds
-        for i in range(n_chunks):#builds a loop in range of the need chunks
-            chunk_start = bounds[i].strftime('%Y-%m-%d') # start date bound  chunk i 
-            chunk_end = bounds[i + 1].strftime('%Y-%m-%d')# end date bound chunk i + 1  
-            # print(f"Fetching chunk {i+1} of {n_chunks}: {chunk_start} --> {chunk_end}")
-            chunk_ds = _fetch_data(# call fetch data for each chunk int
-                stations = stations,
-                elements = elements,
-                duration = duration,
-                start_date = chunk_start,
-                end_date = chunk_end,
-                include_coords = include_coords
-            )
-            # print(f"Chunk {i+1} stations: {len(chunk_ds.station)}")
-            chunks.append(chunk_ds)# adds the ds to the chunks
-        ds = xr.concat(chunks, dim='time', join= 'outer')
-        ds = ds.isel(time=~pd.DatetimeIndex(ds.time.values).duplicated())#removees duplicated
+        bounds = pd.date_range(start=start_date, end=min(pd.Timestamp(end_date), pd.Timestamp.today()),
+                               periods=n_chunks + 1)  # gets a date range from our starting date, to eaither today or the set endate for a good estimation
+        chunks = [None] * n_chunks  # preallocated list so chunks stay in time order regardless of completion order
+        max_workers = min(n_chunks, 8)  # cap concurrent requests to be polite to the API
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_index = {}
+            for i in range(n_chunks):  # builds a loop in range of the need chunks
+                chunk_start = bounds[i].strftime('%Y-%m-%d')  # start date bound  chunk i
+                chunk_end = bounds[i + 1].strftime('%Y-%m-%d')  # end date bound chunk i + 1
+                # print(f"Submitting chunk {i+1} of {n_chunks}: {chunk_start} --> {chunk_end}")
+                future = executor.submit(  # submit fetch data for each chunk to run in parallel
+                    _fetch_data,
+                    stations,
+                    elements,
+                    duration,
+                    chunk_start,
+                    chunk_end,
+                    include_coords,
+                )
+                future_to_index[future] = i
+            for future in as_completed(future_to_index):  # collect results as each chunk finishes
+                i = future_to_index[future]
+                chunks[i] = future.result()  # place into its original ordered slot
+        ds = xr.concat(chunks, dim='time', join='outer')
+        ds = ds.isel(time=~pd.DatetimeIndex(ds.time.values).duplicated())  # removees duplicated
         return ds
     else:
-       return (_fetch_data(stations= stations, elements= elements, duration = duration, start_date= start_date, end_date=end_date, include_coords= include_coords))
-        
-        
-        
-       
-    
-   
-
-    
-
-
-
-
+        return (_fetch_data(stations=stations, elements=elements, duration=duration, start_date=start_date,
+                            end_date=end_date, include_coords=include_coords))
 
 
 if __name__ == "__main__": #main header gaurder  
