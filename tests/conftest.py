@@ -254,7 +254,7 @@ def sample_dataset(mock_api_response, monkeypatch):
     2 stations, 2 elements (PREC, WTEQ), 39 daily time steps.
     Use this fixture for any test that needs a realistic Dataset without a network call.
     """
-    monkeypatch.setattr("snotelpy.fetch.requests.get", lambda *a, **kw: mock_api_response)
+    monkeypatch.setattr("snotelpy.fetch.requests.get", MagicMock(return_value=mock_api_response))
     return _fetch_data(
         stations=["602:CO:SNTL", "936:CO:SNTL"],
         elements=["PREC", "WTEQ"],
