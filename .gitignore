@@ -4,8 +4,14 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+site/
 .eggs/
 .pypirc
+.venv/
+env/
+.env
+*.pyc
+*.pyo
 
 # Large data -- keep out of Git
 *.nc
@@ -24,11 +30,15 @@ Thumbs.db
 .idea/
 
 # Outputs
-*.png
-*.pdf
-
+outputs/*.png
+outputs/*.pdf
 #other
 private_tests/
-
+.pytest_cache/
 /.quarto/
 **/*.quarto_ipynb
+
+
+
+
+
