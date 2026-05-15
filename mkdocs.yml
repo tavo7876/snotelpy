@@ -13,7 +13,7 @@ plugins:
           paths: [src]
 
 nav:
-  - Home: index.md
+  - Home: README.md
   - API Reference:
     - fetch: api/fetch.md
     - basin: api/basin.md
