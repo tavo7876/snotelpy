@@ -61,7 +61,8 @@ requests that exceed the API's 500,000-point limit.
 ### get_stations(station_triplets, elements, hucs, county_name, station_name, returnStationElements, returnType)
 Queries the AWDB API for stations matching the given filters and returns
 a `pandas.DataFrame` or a `geopandas.GeoDataFrame` (EPSG:4326).
- Parameter | Type | Default | Description |
+
+| Parameter | Type | Default | Description |
 |---|---|---|---|
 | `station_triplets` | list | `["::SNTL"]` | All SNOTEL stations by default. |
 | `elements` | list | `[]` | Filter by element codes, e.g. `["WTEQ"]`. |
