@@ -1,0 +1,20 @@
+site_name: snotelpy
+site_description: A Python package for accessing SNOTEL snowpack data
+repo_url: https://github.com/tavo7876/snotelpy
+
+theme:
+  name: material
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+
+nav:
+  - Home: index.md
+  - API Reference:
+    - fetch: api/fetch.md
+    - basin: api/basin.md
+    
