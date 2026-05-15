@@ -114,6 +114,8 @@ See the [Examples notebook](Examples.ipynb) for complete workflows including:
 - `pyyaml >= 6.0`
 - `geopandas >= 1.0.0`
 - `shapely >= 2.0.0`
+- `contextily >= 1.7.0`
+- `scipy >= 1.10.0`
   
 ---
 
