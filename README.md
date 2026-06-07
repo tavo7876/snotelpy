@@ -13,9 +13,7 @@ I built this package as there is currently no actively maintained, modern Python
 
 ## Installation
 ```bash
- pip install --index-url https://test.pypi.org/simple/ \
-    --extra-index-url https://pypi.org/simple/ \
-    snotelpy
+pip install snotelpy
 
 ```
 
