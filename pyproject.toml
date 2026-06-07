@@ -4,14 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "snotelpy"
-version = "0.2.1"
+version = "0.2.2"
 description = "SNOTEL API Wrapper for the NRCS RESTful API for quick dataset/dataframe building"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">= 3.9"
 authors = [
-    {name = "Tate Voeller", email = "tavo7876@colorado.edu"},
-    {name = "Eric Gosnell"},
+    {name = "Tate Voeller", email = "tate.voeller@colorado.edu"},
+    {name = "Eric Gosnell" email = "eric.gosnell@colorado.edu"}
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
