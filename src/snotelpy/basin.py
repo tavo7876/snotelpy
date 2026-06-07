@@ -12,7 +12,7 @@ def basin_summary(hucs=None,
                   climatology_period=("1991-10-01", "2020-09-30")):
     
     '''
-    Retrive a basin summary from the USDA AWDB REST API for a SNOTEL watershed basin denoted by Hydrologic Unit Code[HUC]. 
+    Retrieve a basin summary from the USDA AWDB REST API for a SNOTEL watershed basin denoted by Hydrologic Unit Code[HUC]. 
     For information on HUC codes and how they are structured vist <https://nas.er.usgs.gov/hucs.aspx>
     
     Parameters
@@ -40,7 +40,7 @@ def basin_summary(hucs=None,
         End date in 'YYYY-MM-DD' format, by default '2100-01-01'.
     
    climatology_period: tuple, optional
-        Foramt of tuple is start of climatology to end of climatology. Datetime format 'YYYY-MM-DD'. 
+        Format of tuple is start of climatology to end of climatology. Datetime format 'YYYY-MM-DD'. 
         By default ("1991-10-01", "2025-09-30")):
         This climatology has to fall within the dates of start_date and end_date. It wont throw a error but is important to consider when requesting.  
    
@@ -94,7 +94,7 @@ def basin_summary(hucs=None,
     ------
     ValueError
         If the API request fails or returns no data.
-    Notes
+    Notes:
     For large requests, data is automatically fetched in multiple chunks 
     and concatenated. Basins with no data for a given chunk will contain NaN values.
     
@@ -105,7 +105,7 @@ def basin_summary(hucs=None,
     if end_date is None:
         end_date = "2100-01-01"
     if not hucs:
-        raise ValueError("Hucs was empty or basin couldnt be requested")
+        raise ValueError("Hucs was empty or basin couldn't be requested")
         
     gdf = get_stations(hucs= hucs, returnType='gpd')
     
@@ -144,32 +144,10 @@ def basin_summary(hucs=None,
     climatology.attrs['Description'] = f"Monthly Climatology for HUC: {hucs}"
     
     
-    # Percent of median for WTEQ:
-    
-    # clima_df = climatology.sel(climatology = 'MEDIAN').to_pandas()
-    # stats_df = basin_stats['WTEQ'].sel(stat = 'MEAN').to_pandas()
-    
-   
-    # stats_monthly = stats_df.resample('ME').mean()
-   
-    # month_ints = stats_monthly.index.month
-    
-    # clim_series = clima_df['WTEQ']
-
-    # print(month_ints)
-    # clim_values = month_ints.map(clim_series)
-    # print(clim_values)
-    
-    # pct_of_median = (stats_monthly / clim_values.values) * 100
-    # print(pct_of_median)
-    # pct_of_median = pct_of_median.where(clim_series > 0.5)
-    
-    
     
     return {
         "basin_stats": basin_stats, 
         "climatology": climatology,
-        # "percent_of_median": percent_of_median, #will add this function later hopefully. 
         "stations": gdf  
     }
 
@@ -195,18 +173,3 @@ if __name__ == "__main__":
     print(out["stations"].columns.tolist())                     
 
    
-    
-    # print(basin_sum)
-    
-    
-    
-    # print(basin_stats['WTEQ'].sel(stat = 'MEAN').values.max())
-    # percent_of_median = basin_sum['percent_of_median']
-    # print(percent_of_median)
-    # basin_stats['WTEQ'].sel(stat = 'MEAN').plot()
-    # percent_of_median.plot()
-    # print(percent_of_median.max().values)
-    # print(percent_of_median.min().values)
-    
-    # plt.show()
-    
