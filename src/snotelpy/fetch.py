@@ -13,7 +13,7 @@ import numpy as np
 import geopandas as gpd
 from shapely.geometry import Point
 
-from snotelpy import Config 
+from snotelpy import config 
 
 
 def _parse_dates(values, duration):
