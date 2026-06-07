@@ -1,3 +1,3 @@
-from snotelpy.fetch import fetch_snotel, get_stations, station_info, save_data
+from snotelpy.fetch import fetch_snotel, get_stations, save_data
 from snotelpy import plot
 from snotelpy import basin
