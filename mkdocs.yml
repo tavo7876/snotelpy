@@ -1,5 +1,5 @@
 site_name: snotelpy
-site_description: A Python package for accessing SNOTEL snowpack data
+site_description: A Python package for accessing USDA SNOTEL snowpack data
 repo_url: https://github.com/tavo7876/snotelpy
 
 theme:
@@ -11,10 +11,14 @@ plugins:
       handlers:
         python:
           paths: [src]
+          options:
+            docstring_style: numpy
+            show_source: false
+            show_root_heading: false
 
 nav:
-  - Home: README.md
+  - Home: index.md
   - API Reference:
-    - fetch: api/fetch.md
-    - basin: api/basin.md
-    
+    - Fetch: api/fetch.md
+    - Basin: api/basin.md
+    - Plot: api/plot.md
