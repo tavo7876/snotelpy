@@ -12,8 +12,8 @@ import xarray as xr
 import numpy as np
 import geopandas as gpd
 from shapely.geometry import Point
+from . import config
 
-from snotelpy import config 
 
 
 def _parse_dates(values, duration):
@@ -221,7 +221,7 @@ def _fetch_data(stations=None, elements=None, duration="DAILY", start_date = "19
     
    
     #building dat_vars loop
-    with open(Config.ELEMENTS_YAML_PATH, 'r') as f:#open element metadata
+    with open(config.ELEMENTS_YAML_PATH, 'r') as f:#open element metadata
         var_metadata = yaml.load(f, Loader=yaml.SafeLoader)  
          
     data_vars = {}
@@ -403,17 +403,18 @@ def get_stations(station_triplets =["::SNTL"], elements = None, hucs = None, cou
     else:
         return df
           
-def save_data(data, filename = "snotel_data"):
+def save_data(data, filename="snotel_data"):
     '''
-    Saves data into a NetCDF or a .csv
+    Saves data to NetCDF or CSV.
 
     Parameters
     ----------
-    data : xr.Dataset or pd.DataFrame or gpd.GeoDataFrame
-        xr.Dataset saves the data to a NetCDF, the pd and gpd dataframes save to a .csv
+    data : xr.Dataset or gpd.GeoDataFrame or pd.DataFrame
+        xr.Dataset saves to NetCDF (.nc).
+        GeoDataFrame saves to GeoJSON (.geojson) preserving geometry.
+        DataFrame saves to CSV (.csv).
     filename : str, optional
-        controls your file name,
-        default is "snotel_data"
+        Output filename without extension. Default is "snotel_data".
 
     Returns
     -------
@@ -422,21 +423,31 @@ def save_data(data, filename = "snotel_data"):
     Raises
     ------
     TypeError
-        Gets raised if the data inputed doesent match possbile data set choosen. 
-    
+        If data is not an xr.Dataset, pd.DataFrame, or gpd.GeoDataFrame.
+
     Examples
     --------
-    ds = fetch_snotel(...)
-    save_data(ds, filename="snotel_data")
+    >>> ds = sp.fetch_snotel(...)
+    >>> sp.save_data(ds, filename="snotel_data")       # -> snotel_data.nc
+
+    >>> gdf = sp.get_stations(returnType="gpd")
+    >>> sp.save_data(gdf, filename="stations")         # -> stations.geojson
+
+    >>> df = sp.get_stations(returnType="pd")
+    >>> sp.save_data(df, filename="stations")          # -> stations.csv
     '''
-    
     if isinstance(data, xr.Dataset):
-        data.to_netcdf(f"{filename}.nc","w")
+        data.to_netcdf(f"{filename}.nc", "w")
+    elif isinstance(data, gpd.GeoDataFrame):
+        data.to_file(f"{filename}.geojson", driver="GeoJSON")
     elif isinstance(data, pd.DataFrame):
-        data.to_csv(f"{filename}.csv")
+        data.to_csv(f"{filename}.csv", index=False)
     else:
-        raise TypeError(f"Expected a xarray dataset, geopandas dataframe, pandas dataframe for data, but got {type(data).__name__}")
-    
+        raise TypeError(
+            f"Expected xr.Dataset, gpd.GeoDataFrame, or pd.DataFrame, "
+            f"got {type(data).__name__}"
+        )
+   
 def fetch_snotel(stations=None, elements=None, duration="DAILY", start_date = "1991-01-01", end_date = "2100-01-01", include_coords = False):
     '''
     Fetch data from the USDA AWDB REST API for one or more SNOTEL stations.
