@@ -39,7 +39,7 @@ print(ds)
 
 
 ```
-![SWE time series for three Colorado SNOTEL stations](docs/example_swe.png)
+![SWE time series for three Colorado SNOTEL stations](example_swe.png)
 
 ## Functions
 
