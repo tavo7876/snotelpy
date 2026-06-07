@@ -12,6 +12,13 @@ requires-python = ">= 3.9"
 authors = [
     {name = "Tate Voeller", email = "tavo7876@colorado.edu"},
 ]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Atmospheric Science",
+]
 dependencies = [
     "numpy >= 1.22",
     "matplotlib >= 3.5",
@@ -19,18 +26,22 @@ dependencies = [
     "pandas >= 2.0",
     "xarray >= 2023.1",
     "pyyaml >= 6.0",
-    "geopandas>=1.0.0",
-    "shapely>=2.0.0",
-    "contextily>=1.7.0",
-    "scipy >=1.10.0"
+    "geopandas >= 1.0.0",
+    "shapely >= 2.0.0",
+    "contextily >= 1.7.0",
+    "scipy >= 1.10.0"
 ]
 
 [project.optional-dependencies]
 dev = ["build", "twine", "pytest"]
+
+[project.urls]
+Homepage = "https://tavo7876.github.io/snotelpy/"
+Repository = "https://github.com/tavo7876/snotelpy"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["snotelpy"]
 
 [tool.setuptools.package-data]
-   snotelpy = ["ELEMENTS.yaml"]
+snotelpy = ["ELEMENTS.yaml"]
