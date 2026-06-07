@@ -84,7 +84,7 @@ def element_timeseries(ds, element="WTEQ", show_plot=True, ax=None, figsize=(10,
     long_name, units = _ELEMENT_META.get(element, (element, ""))
     ylabel = f"{long_name} ({units})" if units else long_name
 
-    ax.set_title(f"{long_name} — All Stations", fontsize=10, fontweight="bold")
+    ax.set_title(f"{long_name} — Stations", fontsize=10, fontweight="bold")
     ax.set_xlabel("Date", fontsize=9)
     ax.set_ylabel(ylabel, fontsize=9)
     ax.grid(True, alpha=0.3, linestyle="--")
