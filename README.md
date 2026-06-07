@@ -90,6 +90,62 @@ Returns the matplotlib `Axes` object for further customization or embedding in s
 | `ax` | matplotlib.axes.Axes | `None` | Axes to plot onto. If `None`, a new figure is created. |
 | `figsize` | tuple | `(10, 4)` | Figure size in inches. Only used when `ax` is `None`. |
 
+---
+
+### save_data(ds, path)
+Saves a dataset returned by `fetch_snotel()` to disk.
+Will save a xarray.Dataset as a netcdf, a GeoDataFrame as a GeoJSON
+and a pandas.Dataframe as a .csv.
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `ds` | xarray.Dataset or pandas.Dataframe | required | Dataset to save. |
+| `path` | str | required | Output file path. |
+
+---
+
+### basin_summary(hucs, elements, duration, start_date, end_date, climatology_period)
+
+Retrieves basin-averaged statistics and monthly climatology for a SNOTEL watershed
+basin identified by Hydrologic Unit Code (HUC). Returns a dictionary with three keys.
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `hucs` | list | required | HUC codes to query, e.g. `[1019]`. See [USGS HUC structure](https://nas.er.usgs.gov/hucs.aspx). |
+| `elements` | list | `["WTEQ","PREC","SNWD","TAVG","TMAX","TMIN"]` | Element codes to retrieve. |
+| `duration` | str | `"DAILY"` | `"DAILY"` or `"MONTHLY"`. |
+| `start_date` | str | `"1991-01-01"` | Begin date in `YYYY-MM-DD` format. |
+| `end_date` | str | `"2100-01-01"` | End date in `YYYY-MM-DD` format. |
+| `climatology_period` | tuple | `("1991-10-01", "2020-09-30")` | Start and end of the climatology window. Must fall within `start_date`/`end_date`. |
+
+**Returns** a `dict` with three keys:
+
+| Key | Type | Description |
+|---|---|---|
+| `basin_stats` | xarray.Dataset | Basin-averaged MEAN, MEDIAN, MAX, MIN across all stations. Dimensions: `(stat, time)`. |
+| `climatology` | xarray.Dataset | Monthly climatology over the specified period. Dimensions: `(climatology, month)`. |
+| `stations` | geopandas.GeoDataFrame | All SNOTEL stations within the requested HUC(s), EPSG:4326. |
+
+**Usage:**
+
+```python
+out = sp.basin_summary(
+    hucs=[1019],
+    elements=["WTEQ"],
+    duration="MONTHLY",
+    start_date="2000-10-01",
+    end_date="2025-10-01",
+    climatology_period=("2000-10-01", "2025-10-01")
+)
+
+basin_stats  = out["basin_stats"]
+climatology  = out["climatology"]
+stations     = out["stations"]
+```
+---
+
+
+
 **Basic usage:**
 ```python
 ds = sp.fetch_snotel(
