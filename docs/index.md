@@ -7,7 +7,7 @@ Snotelpy is a lightweight Python Package interface for accessing USDA SNOTEL sta
 ## Motivation
 I built this package as there is currently no actively maintained, modern Python package built on the newer [NRCS AWDB RESTful API](https://wcc.sc.egov.usda.gov/awdbRestApi/swagger-ui/index.html). The previous WSDL/SOAP API used to request SNOTEL data is being transitioned away to the newer AWDB RESTful API.
 
-`snotelpy` fills this gap - giving researchers a simple, Python interface to fetch, filter, and analyze snowpack data from SNOTEL stations without manually constructing API URLs or cleaning raw JSNO responses. 
+`snotelpy` fills this gap - giving researchers a simple, Python interface to fetch, filter, and analyze snowpack data from SNOTEL stations without manually constructing API URLs or cleaning raw JSON responses. 
 
 ---
 
@@ -39,6 +39,8 @@ print(ds)
 
 
 ```
+![SWE time series for three Colorado SNOTEL stations](docs/example_swe.png)
+
 ## Functions
 
 ### fetch_snotel(stations, elements, duration, start_date, end_date, include_coords)
@@ -69,14 +71,44 @@ a `pandas.DataFrame` or a `geopandas.GeoDataFrame` (EPSG:4326).
 | `hucs` | list | `[]` | Filter by HUC watershed codes, e.g. `["10"]`. |
 | `county_name` | str | `""` | Filter by county name, e.g. `"Boulder"`. |
 | `station_name` | str | `""` | Filter by station name. |
+| `returnStationElements` | bool | `False` | If True returns all the possible elements the request stations record. |
 | `returnType` | str | `"pd"` | `"pd"` for pandas DataFrame, `"gpd"` for GeoDataFrame. |
 
 
 ---
 
-### plot.element_timeseries(ds, element, ShowPlot, ax)
-Plots a time series for all stations in a dataset for a given element. Returns
-the matplotlib `Axes` object for further customization or embedding in subplots.
+### plot.element_timeseries(ds, element, show_plot, ax, figsize)
+
+Plots a time series for a given SNOTEL element across all stations in a dataset.
+Returns the matplotlib `Axes` object for further customization or embedding in subplots.
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `ds` | xarray.Dataset | required | Dataset returned by `fetch_snotel()`. |
+| `element` | str | `"WTEQ"` | Element code to plot, e.g. `"WTEQ"`, `"SNWD"`, `"TAVG"`. |
+| `show_plot` | bool | `True` | If `False`, suppresses `plt.show()` for embedding in subplots or saving. |
+| `ax` | matplotlib.axes.Axes | `None` | Axes to plot onto. If `None`, a new figure is created. |
+| `figsize` | tuple | `(10, 4)` | Figure size in inches. Only used when `ax` is `None`. |
+
+**Basic usage:**
+```python
+ds = sp.fetch_snotel(
+    stations=["602:CO:SNTL", "913:CO:SNTL"],
+    elements=["WTEQ"],
+    start_date="2022-10-01",
+    end_date="2023-03-31"
+)
+ax = sp.plot.element_timeseries(ds, element="WTEQ")
+```
+
+**Embedding in a subplot:**
+```python
+fig, axes = plt.subplots(2, 1, figsize=(10, 8))
+sp.plot.element_timeseries(ds, element="WTEQ", show_plot=False, ax=axes[0])
+sp.plot.element_timeseries(ds, element="SNWD", show_plot=False, ax=axes[1])
+plt.tight_layout()
+plt.show()
+```
 
 ---
 
@@ -91,7 +123,7 @@ the matplotlib `Axes` object for further customization or embedding in subplots.
 | `TMAX` | Air Temperature Maximum | °F |
 | `TMIN` | Air Temperature Minimum | °F |
 
-See `ELEMENTS.yaml` for all elements supported in the NRCS networks, note -- SNOTEL dosent support most of these elements. 
+See `ELEMENTS.yaml` for all elements supported in the NRCS networks, note -- SNOTEL doesn't support most of these elements. 
 
 ---
 
@@ -102,21 +134,6 @@ See the [Examples notebook](Examples.ipynb) for complete workflows including:
 - Elevation vs. SWE scatter plots
 - GeoDataFrame mapping
 
----
-
-## Dependencies
-
-- `numpy >= 1.22`
-- `matplotlib >= 3.5`
-- `requests >= 2.31`
-- `pandas >= 2.0`
-- `xarray >= 2023.1`
-- `pyyaml >= 6.0`
-- `geopandas >= 1.0.0`
-- `shapely >= 2.0.0`
-- `contextily >= 1.7.0`
-- `scipy >= 1.10.0`
-  
 ---
 
 ## Data Source
