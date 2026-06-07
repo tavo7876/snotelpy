@@ -11,6 +11,7 @@ license = {text = "MIT"}
 requires-python = ">= 3.9"
 authors = [
     {name = "Tate Voeller", email = "tavo7876@colorado.edu"},
+    {name = "Eric Gosnell"},
 ]
 classifiers = [
     "Programming Language :: Python :: 3",

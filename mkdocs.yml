@@ -18,6 +18,7 @@ plugins:
 
 nav:
   - Home: index.md
+  - Contributing: CONTRIBUTORS.md
   - API Reference:
     - Fetch: api/fetch.md
     - Basin: api/basin.md
