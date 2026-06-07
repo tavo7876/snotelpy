@@ -1,3 +1,7 @@
+[![PyPI version](https://badge.fury.io/py/snotelpy.svg)](https://pypi.org/project/snotelpy/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.txt)
+[![DOI](https://zenodo.org/badge/YOUR_REPO_ID.svg)](https://zenodo.org/badge/latestdoi/)
+
 # snotelpy
 
 Snotelpy is a lightweight Python Package interface for accessing USDA SNOTEL station data, allowing researchers to quickly retrieve, filter, and analyze snowpack variables across all SNOTEL stations and watersheds via the NRCS AWDB RESTful API.
