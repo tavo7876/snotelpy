@@ -45,3 +45,9 @@ include = ["snotelpy"]
 
 [tool.setuptools.package-data]
 snotelpy = ["ELEMENTS.yaml"]
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: marks tests as hitting the real API (deselect with '-m not integration')",
+    "slow: marks tests as slow",
+]
